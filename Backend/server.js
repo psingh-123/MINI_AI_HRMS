@@ -25,7 +25,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://zenith-hj51.onrender.com",
+      "https://zenith-hr-twnk.onrender.com",
     ],
     credentials: true,
   })
