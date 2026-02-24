@@ -31,7 +31,7 @@ export default function RegisterOrganization() {
     }
 
     try {
-      await axios.post("http://localhost:5000/api/org/register", form);
+      await axios.post("https://zenith-hr.onrender.com/api/org/register", form);
       navigate("/admin-login", { 
         state: { message: "Registration successful! Please login." } 
       });
