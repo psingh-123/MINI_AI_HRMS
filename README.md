@@ -206,21 +206,3 @@ Full Stack Developer | AI & Web3 Enthusiast
 📄 License
 
 This project is for educational and demonstration purposes.
-
-
----
-
-# ✅ Now What You Do
-
-1. Create a file:
-
-README.md
-
-2. Paste everything above.
-3. Save.
-4. Then:
-
-```bash
-git add .
-git commit -m "Added professional README"
-git push
