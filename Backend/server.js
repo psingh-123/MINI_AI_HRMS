@@ -25,7 +25,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://mini-ai-hrms-frontend.onrender.com",
+      "https://zenith-hj51.onrender.com",
     ],
     credentials: true,
   })
