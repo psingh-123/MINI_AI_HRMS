@@ -100,29 +100,53 @@
 // };
 
 const Task = require("../models/Task");
+const Employee = require("../models/Employee");
 const mongoose = require("mongoose");
 
 /* ======================================================
    1️⃣ Admin assigns task
 ====================================================== */
 const createTask = async (req, res) => {
-  const { title, description, assignedTo, deadline } = req.body;
+  try {
+    const { title, description, assignedTo, deadline } = req.body;
 
-  if (req.role !== "ADMIN") {
-    res.status(403);
-    throw new Error("Only admin can assign tasks");
+    if (req.role !== "ADMIN") {
+      return res.status(403).json({ error: "Only admin can assign tasks" });
+    }
+
+    if (!assignedTo) {
+      return res.status(400).json({ error: "assignedTo is required" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(assignedTo)) {
+      return res.status(400).json({ error: "Invalid assignedTo id" });
+    }
+
+    // 1️⃣ Check if employee exists
+    const employee = await Employee.findById(assignedTo);
+    if (!employee) {
+      return res.status(404).json({ error: "Employee not found" });
+    }
+
+    // 2️⃣ Ensure employee belongs to same organization
+    if (employee.organizationId.toString() !== req.organizationId.toString()) {
+      return res.status(403).json({ error: "Employee does not belong to your organization" });
+    }
+
+    const task = await Task.create({
+      organizationId: req.organizationId,
+      title,
+      description,
+      assignedTo,
+      deadline,
+      status: "Assigned",
+    });
+
+    return res.status(201).json(task);
+  } catch (err) {
+    console.error("createTask error:", err);
+    return res.status(500).json({ error: err.message });
   }
-
-  const task = await Task.create({
-    organizationId: req.organizationId,
-    title,
-    description,
-    assignedTo,
-    deadline,
-    status: "Assigned",
-  });
-
-  res.status(201).json(task);
 };
 
 /* ======================================================

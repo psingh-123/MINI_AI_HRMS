@@ -1,61 +1,106 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import API from "../services/api";
-// import jwtDecode from "jwt-decode";
-// const decoded = jwtDecode(token);
-import { jwtDecode } from "jwt-decode";
 
 function Navbar() {
   const navigate = useNavigate();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const token = localStorage.getItem("token");
 
-  // useEffect(() => {
-  //   fetchProfile();
-  // }, []);
+  // Lightweight JWT payload decoder (no external deps). Returns payload object or null.
+  const decodeJwt = (t) => {
+    try {
+      const parts = t.split('.');
+      if (parts.length < 2) return null;
+      let payload = parts[1];
+      // base64url -> base64
+      payload = payload.replace(/-/g, '+').replace(/_/g, '/');
+      // pad
+      const pad = payload.length % 4;
+      if (pad) payload += '='.repeat(4 - pad);
+      const decoded = atob(payload);
+      return JSON.parse(decoded);
+    } catch (err) {
+      return null;
+    }
+  };
+
   useEffect(() => {
-  const decoded = jwtDecode(token);
+    if (!token) {
+      setLoading(false);
+      return;
+    }
 
-  if (decoded.role === "employee") {
-    fetchEmployeeProfile();
-  } else if (decoded.role === "admin") {
-    fetchAdminProfile();
-  }
-}, []);
+    const fetchUserData = async () => {
+      try {
+        const decoded = decodeJwt(token);
+        if (!decoded) {
+          setLoading(false);
+          return;
+        }
 
-  // const fetchProfile = async () => {
-  //   try {
-  //     const res = await API.get("/employee-auth/profile", {
-  //       headers: {
-  //         Authorization: `Bearer ${token}`,
-  //       },
-  //     });
-  //     setUser(res.data);
-  //   } catch (err) {
-  //     console.log("Profile fetch error:", err);
-  //   }
-  // };
+        if (decoded.role === "employee") {
+          const res = await API.get("/employee-auth/profile", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setUser(res.data);
+        } else if (decoded.role === "admin") {
+          const res = await API.get("/auth/profile", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setUser(res.data);
+        }
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+        // If token is invalid, clear it
+        if (err.response?.status === 401) {
+          localStorage.removeItem("token");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const fetchEmployeeProfile = async () => {
-  const res = await API.get("/employee-auth/profile", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  setUser(res.data);
-};
-
-// const fetchAdminProfile = async () => {
-//   const res = await API.get("/auth/profile", {
-//     headers: { Authorization: `Bearer ${token}` },
-//   });
-//   setUser(res.data);
-// };
+    fetchUserData();
+  }, [token]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/employee-login");
   };
+
+  // Get user's first name or fallback
+  const getFirstName = () => {
+    if (user?.name) {
+      return user.name.split(' ')[0];
+    }
+    // Try to get from token if user not loaded yet
+    const decoded = token ? decodeJwt(token) : null;
+    return decoded?.name?.split(' ')[0] || "Admin";
+  };
+
+  // Get user's initial
+  const getUserInitial = () => {
+    if (user?.name) {
+      return user.name.charAt(0).toUpperCase();
+    }
+    const decoded = token ? decodeJwt(token) : null;
+    return decoded?.name?.charAt(0)?.toUpperCase() || "A";
+  };
+
+  // Get user's email
+  const getUserEmail = () => {
+    if (user?.email) return user.email;
+    const decoded = token ? decodeJwt(token) : null;
+    return decoded?.email || "employee@company.com";
+  };
+
+  const firstName = getFirstName();
+  const userInitial = getUserInitial();
+  const userEmail = getUserEmail();
 
   return (
     <nav className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-100 shadow-sm">
@@ -63,7 +108,7 @@ function Navbar() {
         <div className="flex items-center justify-between">
           {/* Left Section - Welcome Message */}
           <div className="flex items-center space-x-3">
-            {/* Mobile Menu Indicator (can be used for sidebar toggle) */}
+            {/* Mobile Menu Indicator */}
             <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center lg:hidden">
               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
@@ -75,7 +120,7 @@ function Navbar() {
               <h2 className="text-sm sm:text-base lg:text-lg font-light text-slate-600">
                 Welcome back,
                 <span className="ml-1.5 font-medium bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  {user?.name?.split(' ')[0] || "Employee"}
+                  ADMIN
                 </span>
               </h2>
               <p className="text-xs text-slate-400 hidden sm:block">
@@ -118,7 +163,7 @@ function Navbar() {
                   <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 
                                 flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
                     <span className="text-sm sm:text-base font-medium text-white">
-                      {user?.name?.charAt(0)?.toUpperCase() || "E"}
+                      {userInitial}
                     </span>
                   </div>
                   <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
@@ -127,7 +172,8 @@ function Navbar() {
                 {/* User Info */}
                 <div className="hidden md:block text-left">
                   <p className="text-sm font-medium text-slate-700 group-hover:text-indigo-600 transition-colors">
-                    {user?.name || "Employee"}
+                    {/* {user?.name || Admin} */}
+                    Admin
                   </p>
                   <p className="text-xs text-slate-400 flex items-center space-x-1">
                     <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
@@ -148,8 +194,8 @@ function Navbar() {
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-20 animate-slideDown">
                   {/* User Info Header */}
                   <div className="px-4 py-3 border-b border-slate-100">
-                    <p className="text-sm font-medium text-slate-800">{user?.name}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{user?.email}</p>
+                    <p className="text-sm font-medium text-slate-800">{user?.name || firstName}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">admin@gmail.com</p>
                   </div>
 
                   {/* Menu Items */}
@@ -205,23 +251,6 @@ function Navbar() {
           </div>
         </div>
       </div>
-
-      {/* Animation Styles */}
-      <style jsx>{`
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-slideDown {
-          animation: slideDown 0.2s ease-out;
-        }
-      `}</style>
     </nav>
   );
 }

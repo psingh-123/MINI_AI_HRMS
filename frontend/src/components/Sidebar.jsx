@@ -48,7 +48,7 @@ function Sidebar() {
               {/* Brand Name */}
               <div>
                 <h1 className="text-xl font-light text-slate-800">
-                  Mini AI
+                  Zenith HR
                 </h1>
                 <p className="text-xs font-medium text-indigo-600 -mt-1">
                   HRMS

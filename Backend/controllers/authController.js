@@ -1,5 +1,6 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 
 const Organization = require("../models/Organization");
 const Employee = require("../models/Employee");
@@ -79,4 +80,65 @@ const loginEmployee = async (req, res) => {
   }
 };
 
-module.exports = { registerAdmin, loginAdmin, loginEmployee };
+const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user._id,
+        role: user.role,
+        orgId: user.organizationId,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.json({ token });
+
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Get profile for currently authenticated user/admin
+const getProfile = async (req, res) => {
+  try {
+    // req.user.id is normalized in protect middleware
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
+
+    if (req.role === "ADMIN") {
+      // Admins are organizations in this model
+      const organization = await Organization.findById(req.user.id).select("-password");
+      if (!organization) return res.status(404).json({ message: "Organization not found" });
+      return res.json(organization);
+    }
+
+    // For users (admin/hr/employee) try User first
+    const user = await User.findById(req.user.id).select("-password");
+    if (user) return res.json(user);
+
+    // Fallback: try Employee record
+    const employee = await Employee.findById(req.user.id).select("-password");
+    if (employee) return res.json(employee);
+
+    return res.status(404).json({ message: "Profile not found" });
+  } catch (err) {
+    console.error("getProfile error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+module.exports = { registerAdmin, loginAdmin, loginEmployee, login, getProfile };

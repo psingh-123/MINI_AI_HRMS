@@ -1,7 +1,9 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "https://mini-ai-hrms-backend.onrender.com/api",
+  // Use Vite env override when available, otherwise default to localhost:5001 (local dev)
+  // For production, uncomment or set VITE_API_URL to your deployed backend URL.
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
 });
 
 // Attach token automatically

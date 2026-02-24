@@ -1,4 +1,6 @@
 import { Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import RegisterOrganization from "./pages/RegisterOrganization";
 import AdminLogin from "./pages/AdminLogin";
 import EmployeeLogin from "./pages/EmployeeLogin";
 import Dashboard from "./pages/Dashboard";
@@ -11,12 +13,18 @@ import Tasks from "./pages/Tasks";
 import AssignTask from "./pages/AssignTask";
 import EmployeeProfile from "./pages/EmployeeProfile";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Features from "./pages/Features";
+import Solutions from "./pages/Solution";
+import Pricing from "./pages/Pricing";
+import Resources from "./pages/Resources";
 
 function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<AdminLogin />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/register-org" element={<RegisterOrganization />} />
+        <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/employee-login" element={<EmployeeLogin />} />
 
         <Route
@@ -102,6 +110,11 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route path="/features" element={<Features />} />
+        <Route path="/solutions" element={<Solutions />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/resources" element={<Resources />} />
 
       </Routes>
     </>

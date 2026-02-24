@@ -1,6 +1,7 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const orgRoutes = require("./routes/orgRoutes");
 
 const connectDB = require("./config/db");
 
@@ -19,7 +20,16 @@ dotenv.config();
 const app = express();
 
 // Middlewares
-app.use(cors());
+// Configure CORS to allow the frontend (localhost for dev and deployed origin)
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://mini-ai-hrms-frontend.onrender.com",
+    ],
+    credentials: true,
+  })
+);
 
 app.use(express.json()); // for JSON body parsing
 
@@ -34,6 +44,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/employee-auth", require("./routes/employeeAuthRoutes"));
 app.use("/api/debug", require("./routes/debugRoutes"));
+app.use("/api/org", orgRoutes);
 
 // Default Route
 app.get("/", (req, res) => {
