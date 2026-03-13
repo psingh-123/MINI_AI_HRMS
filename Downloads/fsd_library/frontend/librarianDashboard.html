@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Librarian Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<h2>Add Book</h2>
+
+<input id="title" placeholder="Book Title"><br>
+<input id="author" placeholder="Author"><br>
+
+<button onclick="addBook()">Add Book</button>
+
+<h2>All Books</h2>
+
+<div id="books"></div>
+
+<script src="script.js"></script>
+
+<script>
+loadBooks();
+</script>
+
+</body>
+</html>
