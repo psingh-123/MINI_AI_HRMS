@@ -29,7 +29,7 @@ const MeetingRoom = () => {
   const localStreamRef = useRef(null);
 
   const token = localStorage.getItem('employeeToken');
-  const API_URL = 'http://localhost:5000';
+  const API_URL = 'http://localhost:5000/api';
   const userId = localStorage.getItem('userId');
 
   useEffect(() => {
@@ -50,7 +50,7 @@ const MeetingRoom = () => {
 
   const fetchMeetingDetails = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/meetings/${meetingId}`, {
+      const response = await axios.get(`${API_URL}/meetings/${meetingId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setMeeting(response.data);
