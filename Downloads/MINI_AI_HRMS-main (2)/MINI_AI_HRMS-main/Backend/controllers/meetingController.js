@@ -503,6 +503,110 @@ const getActiveSessions = async (req, res) => {
   }
 };
 
+
+// ═══════════════════════════════════════════════════════
+//  JITSI MEET – Instant meeting helpers
+// ═══════════════════════════════════════════════════════
+
+// POST /meetings/jitsi/create  (admin only)
+const createJitsiMeeting = async (req, res) => {
+  try {
+    const organizationId = req.organizationId;
+
+    if (!organizationId) {
+      return res.status(400).json({ message: 'Organization context missing' });
+    }
+
+    // Generate a unique, URL-safe room ID
+    const roomId = `hrms-${organizationId.toString().slice(-6)}-${crypto.randomBytes(4).toString('hex')}`;
+    const jitsiLink = `https://meet.jit.si/${roomId}`;
+    const jitsiExpiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
+
+    // Deactivate any existing active Jitsi meeting for this org
+    await Meeting.updateMany(
+      { organization: organizationId, jitsiStatus: 'active' },
+      { jitsiStatus: 'ended' }
+    );
+
+    // Use updateOne/upsert with just the Jitsi fields — avoids required-field issues on Meeting schema
+    const doc = await Meeting.findOneAndUpdate(
+      { organization: organizationId, jitsiRoomId: roomId },
+      {
+        $set: {
+          organization: organizationId,
+          title: `Instant Meeting – ${new Date().toLocaleTimeString()}`,
+          scheduledStartTime: new Date(),
+          scheduledEndTime: jitsiExpiresAt,
+          status: 'started',
+          meetingType: 'instant',
+          privacy: 'public',
+          jitsiRoomId: roomId,
+          jitsiLink,
+          jitsiStatus: 'active',
+          jitsiExpiresAt
+        }
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    res.status(201).json({
+      meetingId: doc._id,
+      jitsiRoomId: roomId,
+      jitsiLink,
+      jitsiExpiresAt
+    });
+  } catch (error) {
+    console.error('Error creating Jitsi meeting:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// GET /meetings/jitsi/active  (any authenticated user)
+const getActiveJitsiMeeting = async (req, res) => {
+  try {
+    const organizationId = req.organizationId;
+    const now = new Date();
+
+    const meeting = await Meeting.findOne({
+      organization: organizationId,
+      jitsiStatus: 'active',
+      jitsiExpiresAt: { $gt: now }
+    }).sort({ createdAt: -1 });
+
+    if (!meeting) {
+      return res.status(404).json({ message: 'No active meeting' });
+    }
+
+    res.status(200).json({
+      meetingId: meeting._id,
+      jitsiRoomId: meeting.jitsiRoomId,
+      jitsiLink: meeting.jitsiLink,
+      jitsiExpiresAt: meeting.jitsiExpiresAt,
+      title: meeting.title
+    });
+  } catch (error) {
+    console.error('Error fetching active Jitsi meeting:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// POST /meetings/jitsi/end  (admin only)
+const endJitsiMeeting = async (req, res) => {
+  try {
+    const organizationId = req.organizationId;
+
+    const result = await Meeting.updateMany(
+      { organization: organizationId, jitsiStatus: 'active' },
+      { jitsiStatus: 'ended', status: 'ended', actualEndTime: new Date() }
+    );
+
+    res.status(200).json({ message: 'Meeting ended successfully', updated: result.modifiedCount });
+  } catch (error) {
+    console.error('Error ending Jitsi meeting:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 module.exports = {
   createMeeting,
   getMyMeetings,
@@ -514,5 +618,9 @@ module.exports = {
   endMeeting,
   joinMeeting,
   admitParticipant,
-  getActiveSessions
+  getActiveSessions,
+  // Jitsi
+  createJitsiMeeting,
+  getActiveJitsiMeeting,
+  endJitsiMeeting
 };

@@ -11,22 +11,29 @@ const {
   endMeeting,
   joinMeeting,
   admitParticipant,
-  getActiveSessions
+  getActiveSessions,
+  // Jitsi
+  createJitsiMeeting,
+  getActiveJitsiMeeting,
+  endJitsiMeeting
 } = require('../controllers/meetingController');
-const { protectEmployee, protectAdmin } = require('../middleware/authMiddleware');
+const { protect, protectEmployee, protectAdmin, adminOnly } = require('../middleware/authMiddleware');
 
 // Protect all routes
-router.use(protectEmployee);
+router.use(protect);
 
-// Create meeting
+// ── Jitsi Meet instant-meeting routes (MUST be before /:meetingId catch-all) ──
+router.post('/jitsi/create', adminOnly, (req, res) => createJitsiMeeting(req, res));
+router.get('/jitsi/active', (req, res) => getActiveJitsiMeeting(req, res));
+router.post('/jitsi/end', adminOnly, (req, res) => endJitsiMeeting(req, res));
+
+// Scheduled meeting routes
 router.post('/', (req, res) => createMeeting(req, res));
-
-// Get meetings
 router.get('/my-meetings', (req, res) => getMyMeetings(req, res));
-router.get('/all', protectAdmin, (req, res) => getAllMeetings(req, res));
+router.get('/all', adminOnly, (req, res) => getAllMeetings(req, res));
 router.get('/active/:meetingId', (req, res) => getActiveSessions(req, res));
 
-// Meeting operations
+// Meeting operations (keep after /jitsi/* and /all so they don't catch those paths)
 router.get('/:meetingId', (req, res) => getMeetingDetails(req, res));
 router.put('/:meetingId', (req, res) => updateMeeting(req, res));
 router.delete('/:meetingId', (req, res) => deleteMeeting(req, res));

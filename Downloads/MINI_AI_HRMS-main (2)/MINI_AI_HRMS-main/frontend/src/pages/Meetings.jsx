@@ -1,518 +1,571 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import API from '../services/api';
-import { format, addHours, addMinutes } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
 
-const Meetings = () => {
-  const [meetings, setMeetings] = useState([]);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedMeeting, setSelectedMeeting] = useState(null);
-  const [activeTab, setActiveTab] = useState('upcoming');
-  const [employees, setEmployees] = useState([]);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+/* ─────────────────────────────────────────────────────────
+   Utility helpers
+───────────────────────────────────────────────────────── */
+function fmtExpiry(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
 
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    scheduledStartTime: '',
-    scheduledEndTime: '',
-    participants: [],
-    meetingType: 'scheduled',
-    privacy: 'private',
-    password: '',
-    settings: {
-      allowRecording: false,
-      allowScreenShare: true,
-      allowChat: true,
-      allowRaiseHand: true,
-      maxParticipants: 50,
-      joinBeforeHost: false
+function secondsLeft(iso) {
+  if (!iso) return 0;
+  return Math.max(0, Math.round((new Date(iso) - Date.now()) / 1000));
+}
+
+function fmtCountdown(secs) {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m ${String(s).padStart(2, '0')}s`;
+}
+
+/* ─────────────────────────────────────────────────────────
+   ADMIN PANEL
+───────────────────────────────────────────────────────── */
+function AdminPanel() {
+  const [meeting, setMeeting] = useState(null);   // { jitsiLink, jitsiExpiresAt }
+  const [loading, setLoading] = useState(false);
+  const [ending, setEnding] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [secs, setSecs] = useState(0);
+  const tickRef = useRef(null);
+  const pollRef = useRef(null);
+
+  const fetchActive = useCallback(async () => {
+    try {
+      const r = await API.get('/meetings/jitsi/active');
+      setMeeting(r.data);
+      const rem = secondsLeft(r.data.jitsiExpiresAt);
+      setSecs(rem);
+      startTick(rem);
+    } catch {
+      setMeeting(null);
+      setSecs(0);
+      clearInterval(tickRef.current);
     }
-  });
+  }, []);
 
-  // Token and API_URL are handled by the API service
-  const navigate = useNavigate();
+  function startTick(initial) {
+    clearInterval(tickRef.current);
+    tickRef.current = setInterval(() => {
+      setSecs(c => {
+        if (c <= 1) { clearInterval(tickRef.current); return 0; }
+        return c - 1;
+      });
+    }, 1000);
+  }
 
   useEffect(() => {
-    checkAdminStatus();
-    fetchEmployees();
-    fetchMeetings();
-  }, [activeTab, currentPage]);
+    fetchActive();
+    pollRef.current = setInterval(fetchActive, 30000);
+    return () => {
+      clearInterval(pollRef.current);
+      clearInterval(tickRef.current);
+    };
+  }, [fetchActive]);
 
-  const checkAdminStatus = () => {
-    const userRole = localStorage.getItem('userRole');
-    setIsAdmin(userRole === 'admin');
-  };
-
-  const fetchEmployees = async () => {
+  const handleStart = async () => {
+    setLoading(true);
     try {
-      const response = await API.get('/employees');
-      setEmployees(response.data);
-    } catch (error) {
-      console.error('Error fetching employees:', error);
+      const r = await API.post('/meetings/jitsi/create');
+      setMeeting(r.data);
+      const rem = secondsLeft(r.data.jitsiExpiresAt);
+      setSecs(rem);
+      startTick(rem);
+    } catch (err) {
+      alert('Failed to create meeting: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fetchMeetings = async () => {
+  const handleEnd = async () => {
+    if (!confirm('End the active meeting? Employees will be able to see it is ended.')) return;
+    setEnding(true);
     try {
-      const endpoint = isAdmin ? '/meetings/all' : '/meetings/my-meetings';
-      const statusFilter = activeTab === 'upcoming' ? 'scheduled' : 
-                         activeTab === 'active' ? 'started' : 'ended';
-      
-      const response = await API.get(`${endpoint}?status=${statusFilter}&page=${currentPage}`);
-      
-      setMeetings(response.data.meetings);
-      setTotalPages(response.data.totalPages);
-    } catch (error) {
-      console.error('Error fetching meetings:', error);
+      await API.post('/meetings/jitsi/end');
+      setMeeting(null);
+      setSecs(0);
+      clearInterval(tickRef.current);
+    } catch (err) {
+      alert('Failed to end meeting: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setEnding(false);
     }
   };
 
-  const createMeeting = async () => {
-    try {
-      await API.post('/meetings', formData);
-      
-      setShowCreateModal(false);
-      resetFormData();
-      fetchMeetings();
-    } catch (error) {
-      console.error('Error creating meeting:', error);
-    }
-  };
-
-  const startMeeting = async (meetingId) => {
-    try {
-      await API.post(`/meetings/${meetingId}/start`, {});
-      const prefix = isAdmin ? '/admin' : '/employee';
-      navigate(`${prefix}/meeting-room/${meetingId}`);
-    } catch (error) {
-      console.error('Error starting meeting:', error);
-    }
-  };
-
-  const joinMeeting = async (meeting) => {
-    try {
-      const response = await API.post(`/meetings/${meeting._id}/join`, 
-        { password: meeting.password }
-      );
-
-      if (response.data.canJoin) {
-        const prefix = isAdmin ? '/admin' : '/employee';
-        navigate(`${prefix}/meeting-room/${meeting._id}`);
-      } else {
-        alert(response.data.message || 'Cannot join meeting');
-      }
-    } catch (error) {
-      console.error('Error joining meeting:', error);
-      alert(error.response?.data?.message || 'Failed to join meeting');
-    }
-  };
-
-  const deleteMeeting = async (meetingId) => {
-    if (!confirm('Are you sure you want to delete this meeting?')) return;
-    
-    try {
-      await API.delete(`/meetings/${meetingId}`);
-      
-      fetchMeetings();
-    } catch (error) {
-      console.error('Error deleting meeting:', error);
-    }
-  };
-
-  const resetFormData = () => {
-    setFormData({
-      title: '',
-      description: '',
-      scheduledStartTime: '',
-      scheduledEndTime: '',
-      participants: [],
-      meetingType: 'scheduled',
-      privacy: 'private',
-      password: '',
-      settings: {
-        allowRecording: false,
-        allowScreenShare: true,
-        allowChat: true,
-        allowRaiseHand: true,
-        maxParticipants: 50,
-        joinBeforeHost: false
-      }
+  const handleCopy = () => {
+    if (!meeting?.jitsiLink) return;
+    navigator.clipboard.writeText(meeting.jitsiLink).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
     });
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'scheduled': return 'bg-blue-100 text-blue-800';
-      case 'started': return 'bg-green-100 text-green-800';
-      case 'ended': return 'bg-gray-100 text-gray-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  const handleOpen = () => {
+    if (meeting?.jitsiLink) window.open(meeting.jitsiLink, '_blank', 'noopener');
   };
 
-  const getPrivacyColor = (privacy) => {
-    switch (privacy) {
-      case 'public': return 'bg-green-100 text-green-800';
-      case 'private': return 'bg-yellow-100 text-yellow-800';
-      case 'password_protected': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const isMeetingActive = (meeting) => {
-    const now = new Date();
-    const startTime = new Date(meeting.scheduledStartTime);
-    const endTime = new Date(meeting.scheduledEndTime);
-    return meeting.status === 'started' || (now >= startTime && now <= endTime);
-  };
+  // Color based on time remaining
+  const pct = meeting ? Math.min(100, (secs / 7200) * 100) : 0;
+  const timerColor = secs > 1800 ? '#10b981' : secs > 600 ? '#f59e0b' : '#ef4444';
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Video Meetings</h1>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Schedule Meeting
-          </button>
+    <div style={styles.panel}>
+      {/* Header */}
+      <div style={styles.panelHeader}>
+        <div style={{ ...styles.iconBadge, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
+          <svg width="22" height="22" fill="none" stroke="white" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M15 10l4.553-2.069A1 1 0 0121 8.88v6.24a1 1 0 01-1.447.89L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
         </div>
+        <div>
+          <h2 style={styles.panelTitle}>Video Meeting Control</h2>
+          <p style={styles.panelSub}>Start an instant meeting — employees will see the join button automatically</p>
+        </div>
+      </div>
 
-        {/* Tabs */}
-        <div className="bg-white rounded-lg shadow mb-6">
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-8 px-6">
-              <button
-                onClick={() => setActiveTab('upcoming')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'upcoming'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Upcoming
-              </button>
-              <button
-                onClick={() => setActiveTab('active')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'active'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Active
-              </button>
-              <button
-                onClick={() => setActiveTab('completed')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'completed'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Completed
-              </button>
-            </nav>
+      {/* Body */}
+      <div style={styles.panelBody}>
+        {!meeting ? (
+          /* ── No active meeting ── */
+          <div style={styles.emptyState}>
+            <div style={{ ...styles.emptyIcon, background: 'linear-gradient(135deg,#ede9fe,#c4b5fd)' }}>
+              <svg width="40" height="40" fill="none" stroke="#7c3aed" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M15 10l4.553-2.069A1 1 0 0121 8.88v6.24a1 1 0 01-1.447.89L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h3 style={{ fontSize: 20, fontWeight: 700, color: '#1e293b', margin: '0 0 8px' }}>No Meeting Active</h3>
+            <p style={{ fontSize: 14, color: '#64748b', margin: '0 0 32px', lineHeight: 1.6 }}>
+              Click below to instantly start a Jitsi Meet session.<br />
+              A unique link will be generated and pushed to all employees.
+            </p>
+            <button
+              id="start-meeting-btn"
+              onClick={handleStart}
+              disabled={loading}
+              style={styles.startBtn}
+            >
+              {loading ? (
+                <>
+                  <span style={styles.spinner} />
+                  Generating…
+                </>
+              ) : (
+                <>
+                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+                      d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Start Instant Meeting
+                </>
+              )}
+            </button>
           </div>
-        </div>
-
-        {/* Meetings List */}
-        <div className="space-y-4">
-          {meetings.map((meeting) => (
-            <div key={meeting._id} className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900">{meeting.title}</h3>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(meeting.status)}`}>
-                      {meeting.status}
-                    </span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPrivacyColor(meeting.privacy)}`}>
-                      {meeting.privacy.replace('_', ' ')}
-                    </span>
-                  </div>
-                  
-                  <p className="text-gray-600 mb-3">{meeting.description}</p>
-                  
-                  <div className="flex items-center space-x-6 text-sm text-gray-500">
-                    <div className="flex items-center space-x-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span>{format(new Date(meeting.scheduledStartTime), 'MMM dd, yyyy HH:mm')}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                      <span>{meeting.participants.length + 1} participants</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      <span>Host: {meeting.host?.name}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2 ml-4">
-                  {meeting.status === 'scheduled' && meeting.host._id === localStorage.getItem('userId') && (
-                    <button
-                      onClick={() => startMeeting(meeting._id)}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                    >
-                      Start Meeting
-                    </button>
-                  )}
-                  
-                  {meeting.status === 'started' && (
-                    <button
-                      onClick={() => joinMeeting(meeting)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                    >
-                      Join Meeting
-                    </button>
-                  )}
-                  
-                  {meeting.status === 'scheduled' && isMeetingActive(meeting) && (
-                    <button
-                      onClick={() => joinMeeting(meeting)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                    >
-                      Join Now
-                    </button>
-                  )}
-                  
-                  {meeting.host._id === localStorage.getItem('userId') && (
-                    <button
-                      onClick={() => deleteMeeting(meeting._id)}
-                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                    >
-                      Delete
-                    </button>
-                  )}
-                </div>
+        ) : (
+          /* ── Active meeting ── */
+          <div>
+            {/* Status row */}
+            <div style={styles.statusRow}>
+              <div style={styles.liveDot} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#059669' }}>LIVE</span>
+              <span style={{ fontSize: 13, color: '#64748b', marginLeft: 8 }}>
+                Expires at {fmtExpiry(meeting.jitsiExpiresAt)}
+              </span>
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="14" height="14" fill="none" stroke={timerColor} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span style={{ fontSize: 13, fontWeight: 700, color: timerColor }}>{fmtCountdown(secs)}</span>
               </div>
             </div>
-          ))}
-        </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center space-x-4 mt-8">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 disabled:bg-gray-100"
-            >
-              Previous
-            </button>
-            <span className="text-sm text-gray-700">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 disabled:bg-gray-100"
-            >
-              Next
-            </button>
-          </div>
-        )}
+            {/* Timer bar */}
+            <div style={styles.timerTrack}>
+              <div style={{ ...styles.timerBar, width: `${pct}%`, background: timerColor }} />
+            </div>
 
-        {/* Create Meeting Modal */}
-        {showCreateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
-              <h3 className="text-lg font-semibold mb-4">Schedule New Meeting</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Meeting Title
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData({...formData, title: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                    placeholder="Enter meeting title"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                    placeholder="Enter meeting description"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Start Time
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={formData.scheduledStartTime}
-                      onChange={(e) => setFormData({...formData, scheduledStartTime: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      End Time
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={formData.scheduledEndTime}
-                      onChange={(e) => setFormData({...formData, scheduledEndTime: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Participants
-                  </label>
-                  <select
-                    multiple
-                    value={formData.participants}
-                    onChange={(e) => setFormData({...formData, participants: Array.from(e.target.selectedOptions, option => option.value)})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                    size={4}
-                  >
-                    {employees.map((employee) => (
-                      <option key={employee._id} value={employee._id}>
-                        {employee.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple participants</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Privacy
-                    </label>
-                    <select
-                      value={formData.privacy}
-                      onChange={(e) => setFormData({...formData, privacy: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                    >
-                      <option value="public">Public</option>
-                      <option value="private">Private</option>
-                      <option value="password_protected">Password Protected</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Password (if protected)
-                    </label>
-                    <input
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                      placeholder="Enter password"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Meeting Settings
-                  </label>
-                  <div className="space-y-2">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={formData.settings.allowScreenShare}
-                        onChange={(e) => setFormData({
-                          ...formData, 
-                          settings: {...formData.settings, allowScreenShare: e.target.checked}
-                        })}
-                        className="mr-2"
-                      />
-                      <span className="text-sm">Allow screen sharing</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={formData.settings.allowChat}
-                        onChange={(e) => setFormData({
-                          ...formData, 
-                          settings: {...formData.settings, allowChat: e.target.checked}
-                        })}
-                        className="mr-2"
-                      />
-                      <span className="text-sm">Allow chat</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={formData.settings.allowRaiseHand}
-                        onChange={(e) => setFormData({
-                          ...formData, 
-                          settings: {...formData.settings, allowRaiseHand: e.target.checked}
-                        })}
-                        className="mr-2"
-                      />
-                      <span className="text-sm">Allow raise hand</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={formData.settings.joinBeforeHost}
-                        onChange={(e) => setFormData({
-                          ...formData, 
-                          settings: {...formData.settings, joinBeforeHost: e.target.checked}
-                        })}
-                        className="mr-2"
-                      />
-                      <span className="text-sm">Allow participants to join before host</span>
-                    </label>
-                  </div>
-                </div>
+            {/* Link card */}
+            <div style={styles.linkCard}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <svg width="16" height="16" fill="none" stroke="#6366f1" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b', letterSpacing: '0.05em' }}>MEETING LINK</span>
               </div>
-
-              <div className="flex space-x-2 mt-6">
+              <p style={styles.linkText}>{meeting.jitsiLink}</p>
+              <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
                 <button
-                  onClick={createMeeting}
-                  disabled={!formData.title || !formData.scheduledStartTime || !formData.scheduledEndTime}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300"
+                  id="copy-link-btn"
+                  onClick={handleCopy}
+                  style={{ ...styles.actionBtn, background: copied ? '#ecfdf5' : '#f8fafc', color: copied ? '#059669' : '#475569', borderColor: copied ? '#a7f3d0' : '#e2e8f0' }}
                 >
-                  Schedule Meeting
+                  {copied ? (
+                    <><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg> Copied!</>
+                  ) : (
+                    <><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg> Copy Link</>
+                  )}
                 </button>
                 <button
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    resetFormData();
-                  }}
-                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+                  id="open-meeting-btn"
+                  onClick={handleOpen}
+                  style={{ ...styles.actionBtn, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: 'white', borderColor: 'transparent', boxShadow: '0 4px 14px rgba(99,102,241,0.35)' }}
                 >
-                  Cancel
+                  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  Open Jitsi
                 </button>
               </div>
             </div>
+
+            {/* End button */}
+            <button
+              id="end-meeting-btn"
+              onClick={handleEnd}
+              disabled={ending}
+              style={styles.endBtn}
+            >
+              {ending ? 'Ending…' : '⏹ End Meeting for Everyone'}
+            </button>
           </div>
         )}
       </div>
     </div>
   );
+}
+
+/* ─────────────────────────────────────────────────────────
+   EMPLOYEE PANEL
+───────────────────────────────────────────────────────── */
+function EmployeePanel() {
+  const [meeting, setMeeting] = useState(null);
+  const [secs, setSecs] = useState(0);
+  const tickRef = useRef(null);
+  const pollRef = useRef(null);
+
+  const fetchActive = useCallback(async () => {
+    try {
+      const r = await API.get('/meetings/jitsi/active');
+      setMeeting(r.data);
+      const rem = secondsLeft(r.data.jitsiExpiresAt);
+      setSecs(rem);
+      clearInterval(tickRef.current);
+      tickRef.current = setInterval(() => {
+        setSecs(c => {
+          if (c <= 1) { clearInterval(tickRef.current); return 0; }
+          return c - 1;
+        });
+      }, 1000);
+    } catch {
+      setMeeting(null);
+      setSecs(0);
+      clearInterval(tickRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchActive();
+    pollRef.current = setInterval(fetchActive, 15000);
+    return () => {
+      clearInterval(pollRef.current);
+      clearInterval(tickRef.current);
+    };
+  }, [fetchActive]);
+
+  const handleJoin = () => {
+    if (meeting?.jitsiLink) window.open(meeting.jitsiLink, '_blank', 'noopener');
+  };
+
+  const timerColor = secs > 1800 ? '#10b981' : secs > 600 ? '#f59e0b' : '#ef4444';
+
+  return (
+    <div style={styles.panel}>
+      {/* Header */}
+      <div style={styles.panelHeader}>
+        <div style={{ ...styles.iconBadge, background: meeting ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#94a3b8,#64748b)' }}>
+          <svg width="22" height="22" fill="none" stroke="white" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M15 10l4.553-2.069A1 1 0 0121 8.88v6.24a1 1 0 01-1.447.89L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <div>
+          <h2 style={styles.panelTitle}>Join Today's Meeting</h2>
+          <p style={styles.panelSub}>
+            {meeting ? 'A meeting is active — click to join' : 'Waiting for HR to start a meeting…'}
+          </p>
+        </div>
+        {meeting && (
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, background: '#ecfdf5', borderRadius: 999, padding: '6px 14px' }}>
+            <span style={styles.liveDot} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#059669' }}>LIVE</span>
+          </div>
+        )}
+      </div>
+
+      <div style={styles.panelBody}>
+        {meeting ? (
+          /* ── Meeting available ── */
+          <div style={{ textAlign: 'center' }}>
+            {/* Pulsing ring animation */}
+            <div style={styles.pulseWrap}>
+              <div style={styles.pulseRing1} />
+              <div style={styles.pulseRing2} />
+              <div style={styles.pulseCore}>
+                <svg width="32" height="32" fill="none" stroke="white" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M15 10l4.553-2.069A1 1 0 0121 8.88v6.24a1 1 0 01-1.447.89L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </div>
+            </div>
+
+            <h3 style={{ fontSize: 22, fontWeight: 800, color: '#1e293b', margin: '24px 0 8px' }}>Meeting is Live!</h3>
+            <p style={{ fontSize: 14, color: '#64748b', margin: '0 0 6px' }}>Your team is waiting for you</p>
+            <p style={{ fontSize: 13, color: timerColor, fontWeight: 600, margin: '0 0 28px' }}>
+              ⏱ Expires in {fmtCountdown(secs)}
+            </p>
+
+            <button
+              id="join-meeting-btn"
+              onClick={handleJoin}
+              style={styles.joinBtn}
+            >
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+                  d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Join Meeting Now
+            </button>
+            <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 12 }}>Opens Jitsi Meet in a new tab</p>
+          </div>
+        ) : (
+          /* ── Waiting state ── */
+          <div style={styles.waitingState}>
+            <div style={styles.waitingDots}>
+              <div style={{ ...styles.dot, animationDelay: '0s' }} />
+              <div style={{ ...styles.dot, animationDelay: '0.2s' }} />
+              <div style={{ ...styles.dot, animationDelay: '0.4s' }} />
+            </div>
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#1e293b', margin: '20px 0 8px' }}>No Meeting Yet</h3>
+            <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.6 }}>
+              HR hasn't started a meeting yet.<br />
+              This page refreshes automatically every 15 seconds.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Keyframe styles */}
+      <style>{`
+        @keyframes pulse-ring {
+          0% { transform: scale(1); opacity: 0.6; }
+          100% { transform: scale(1.8); opacity: 0; }
+        }
+        @keyframes bounce-dot {
+          0%, 80%, 100% { transform: translateY(0); }
+          40% { transform: translateY(-10px); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────
+   SHARED STYLES
+───────────────────────────────────────────────────────── */
+const styles = {
+  panel: {
+    background: 'white',
+    borderRadius: 24,
+    boxShadow: '0 4px 24px rgba(0,0,0,0.07)',
+    border: '1px solid #f1f5f9',
+    overflow: 'hidden',
+    maxWidth: 640,
+    margin: '0 auto',
+  },
+  panelHeader: {
+    padding: '22px 28px',
+    borderBottom: '1px solid #f1f5f9',
+    background: 'linear-gradient(135deg,#f8fafc,#eff6ff)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 16,
+  },
+  panelTitle: { fontSize: 18, fontWeight: 700, color: '#1e293b', margin: 0 },
+  panelSub: { fontSize: 13, color: '#64748b', margin: '2px 0 0' },
+  iconBadge: {
+    width: 46, height: 46, borderRadius: 14,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
+  panelBody: { padding: 32 },
+  emptyState: { textAlign: 'center', padding: '8px 0' },
+  emptyIcon: {
+    width: 80, height: 80, borderRadius: '50%',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    margin: '0 auto 24px',
+  },
+  startBtn: {
+    display: 'inline-flex', alignItems: 'center', gap: 10,
+    padding: '16px 36px', borderRadius: 14,
+    fontSize: 16, fontWeight: 700, border: 'none', cursor: 'pointer',
+    background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+    color: 'white',
+    boxShadow: '0 8px 24px rgba(99,102,241,0.45)',
+    transition: 'transform 0.15s, box-shadow 0.15s',
+  },
+  statusRow: {
+    display: 'flex', alignItems: 'center', gap: 8,
+    marginBottom: 10,
+  },
+  liveDot: {
+    width: 8, height: 8, borderRadius: '50%',
+    background: '#10b981',
+    boxShadow: '0 0 0 3px rgba(16,185,129,0.25)',
+    animation: 'pulse-ring 1.5s ease-out infinite',
+  },
+  timerTrack: {
+    height: 6, borderRadius: 999, background: '#f1f5f9',
+    overflow: 'hidden', marginBottom: 20,
+  },
+  timerBar: { height: '100%', borderRadius: 999, transition: 'width 1s linear, background 1s' },
+  linkCard: {
+    background: '#f8fafc', borderRadius: 16,
+    border: '1px solid #e2e8f0', padding: 20, marginBottom: 20,
+  },
+  linkText: {
+    fontSize: 14, fontWeight: 600, color: '#6366f1',
+    wordBreak: 'break-all', margin: 0, lineHeight: 1.6,
+  },
+  actionBtn: {
+    display: 'inline-flex', alignItems: 'center', gap: 7,
+    padding: '10px 18px', borderRadius: 10,
+    fontSize: 13, fontWeight: 600, border: '1px solid',
+    cursor: 'pointer', transition: 'all 0.2s',
+  },
+  endBtn: {
+    width: '100%', padding: '12px', borderRadius: 12,
+    fontSize: 13, fontWeight: 600, border: '1px solid #fca5a5',
+    background: '#fef2f2', color: '#dc2626', cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+  spinner: {
+    width: 16, height: 16,
+    border: '2px solid rgba(255,255,255,0.4)',
+    borderTopColor: 'white',
+    borderRadius: '50%',
+    animation: 'spin 0.7s linear infinite',
+    display: 'inline-block',
+  },
+  pulseWrap: {
+    position: 'relative', width: 100, height: 100,
+    margin: '0 auto',
+  },
+  pulseRing1: {
+    position: 'absolute', inset: 0, borderRadius: '50%',
+    background: 'rgba(16,185,129,0.15)',
+    animation: 'pulse-ring 2s ease-out infinite',
+  },
+  pulseRing2: {
+    position: 'absolute', inset: 10, borderRadius: '50%',
+    background: 'rgba(16,185,129,0.2)',
+    animation: 'pulse-ring 2s ease-out infinite 0.5s',
+  },
+  pulseCore: {
+    position: 'absolute', inset: 20, borderRadius: '50%',
+    background: 'linear-gradient(135deg,#10b981,#059669)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  joinBtn: {
+    display: 'inline-flex', alignItems: 'center', gap: 10,
+    padding: '18px 44px', borderRadius: 16,
+    fontSize: 17, fontWeight: 800, border: 'none', cursor: 'pointer',
+    background: 'linear-gradient(135deg,#10b981,#059669)',
+    color: 'white',
+    boxShadow: '0 10px 30px rgba(16,185,129,0.45)',
+    transition: 'transform 0.15s, box-shadow 0.15s',
+  },
+  waitingState: { textAlign: 'center', padding: '16px 0' },
+  waitingDots: {
+    display: 'flex', gap: 10, justifyContent: 'center', marginBottom: 4,
+  },
+  dot: {
+    width: 12, height: 12, borderRadius: '50%',
+    background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+    animation: 'bounce-dot 1.4s ease-in-out infinite',
+  },
 };
 
-export default Meetings;
+/* ─────────────────────────────────────────────────────────
+   ROOT
+───────────────────────────────────────────────────────── */
+export default function Meetings() {
+  const role = (localStorage.getItem('userRole') || '').toLowerCase();
+  const isAdmin = role === 'admin';
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg,#f8fafc 0%,#eff6ff 50%,#faf5ff 100%)',
+      padding: '40px 24px',
+    }}>
+      <div style={{ maxWidth: 720, margin: '0 auto' }}>
+        {/* Page header */}
+        <div style={{ marginBottom: 36, textAlign: 'center' }}>
+          <h1 style={{ fontSize: 32, fontWeight: 800, color: '#1e293b', margin: '0 0 8px' }}>
+            {isAdmin ? '📡 Meeting Control' : '🎥 Video Meeting'}
+          </h1>
+          <p style={{ fontSize: 15, color: '#64748b', margin: 0 }}>
+            {isAdmin
+              ? 'Start an instant Jitsi meeting — your team gets notified immediately'
+              : 'Join your team\'s video meeting with one click'}
+          </p>
+        </div>
+
+        {isAdmin ? <AdminPanel /> : <EmployeePanel />}
+
+        {/* Info strip */}
+        <div style={{
+          marginTop: 24,
+          background: 'rgba(99,102,241,0.06)',
+          borderRadius: 14, padding: '14px 20px',
+          display: 'flex', alignItems: 'center', gap: 12,
+          border: '1px solid rgba(99,102,241,0.12)',
+        }}>
+          <svg width="18" height="18" fill="none" stroke="#6366f1" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p style={{ fontSize: 13, color: '#475569', margin: 0 }}>
+            Powered by <strong style={{ color: '#6366f1' }}>Jitsi Meet</strong> — free, open, no account needed.
+            Meetings auto-expire after <strong>2 hours</strong>.
+          </p>
+        </div>
+
+        <style>{`
+          @keyframes spin { to { transform: rotate(360deg); } }
+          @keyframes pulse-ring {
+            0% { transform: scale(1); opacity: 0.6; }
+            100% { transform: scale(1.8); opacity: 0; }
+          }
+          @keyframes bounce-dot {
+            0%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+          }
+          #start-meeting-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(99,102,241,0.55) !important; }
+          #join-meeting-btn:hover  { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(16,185,129,0.55) !important; }
+          #end-meeting-btn:hover   { background: #fee2e2 !important; }
+          #open-meeting-btn:hover  { opacity: 0.9; }
+        `}</style>
+      </div>
+    </div>
+  );
+}

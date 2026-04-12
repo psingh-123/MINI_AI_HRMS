@@ -6,6 +6,11 @@ const meetingSchema = new mongoose.Schema({
     ref: 'Organization1',
     required: true
   },
+  // ── Jitsi Meet fields (optional – only set for instant Jitsi meetings) ──
+  jitsiRoomId:   { type: String },
+  jitsiLink:     { type: String },
+  jitsiStatus:   { type: String, enum: ['active', 'ended'], default: 'active' },
+  jitsiExpiresAt: { type: Date },
   title: {
     type: String,
     required: true,
@@ -17,8 +22,8 @@ const meetingSchema = new mongoose.Schema({
   },
   host: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Employee',
-    required: true
+    ref: 'Employee'
+    // not required – Jitsi instant meetings may not have an Employee host
   },
   participants: [{
     user: {
