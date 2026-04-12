@@ -53,21 +53,24 @@ function HRQRPanel() {
     }), { width: 280, margin: 2, color: { dark: '#1e293b', light: '#ffffff' } }).catch(() => {});
   }, [session]);
 
-  // Auto-refresh every 60 s
-  useEffect(() => {
-    if (!session) return;
-    clearInterval(autoRef.current);
-    autoRef.current = setInterval(generateQR, 60000);
-    return () => clearInterval(autoRef.current);
-  }, [session, generateQR]);
+  // Removed auto-refresh every 60 s as requested
 
   // Countdown tick
   useEffect(() => {
     clearInterval(tickRef.current);
     if (!session) return;
-    tickRef.current = setInterval(() => setCountdown(c => c > 0 ? c - 1 : 0), 1000);
+    tickRef.current = setInterval(() => setCountdown(c => {
+      if (c <= 1) {
+        clearInterval(tickRef.current);
+        // Automatically stop the session when time runs out
+        // This ensures the QR disappears and no new one is auto-generated
+        stopQR(); 
+        return 0;
+      }
+      return c - 1;
+    }), 1000);
     return () => clearInterval(tickRef.current);
-  }, [session]);
+  }, [session, stopQR]);
 
   const loadDate = async (date) => {
     if (expandedDate === date) { setExpandedDate(null); return; }
@@ -466,12 +469,13 @@ function EmployeeQRPanel() {
                 </div>
 
                 <div className="action-buttons" style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-                  <button className="mark-btn" onClick={handleMarkPresent} disabled={locating || marking}>
+                  <button className="mark-btn" onClick={handleMarkPresent} disabled={locating || marking || countdown <= 0}>
                     {locating ? <><span className="spin" /> Checking GPS…</>
                       : marking ? <><span className="spin" /> Recording…</>
-                        : <><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg> Mark as Present</>
+                        : countdown <= 0 ? '⏰ Session Expired'
+                          : <><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg> Mark as Present</>
                     }
                   </button>
                   

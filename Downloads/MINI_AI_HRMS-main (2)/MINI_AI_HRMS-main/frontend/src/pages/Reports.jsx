@@ -13,6 +13,7 @@ const Reports = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [stats, setStats] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(localStorage.getItem('userId') || '');
 
   const [formData, setFormData] = useState({
     reportedUserId: '',
@@ -36,6 +37,9 @@ const Reports = () => {
     if (isAdmin) {
       fetchAllReports();
       fetchStats();
+      setActiveTab('all');
+    } else {
+      setActiveTab('my-reports');
     }
     fetchMyReports();
     fetchReportsAgainstMe();
@@ -223,15 +227,17 @@ const Reports = () => {
               >
                 My Reports
               </button>
-              <button
-                onClick={() => setActiveTab('against-me')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'against-me'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-              >
-                Reports Against Me
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => setActiveTab('against-me')}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'against-me'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                  Reports Against Me
+                </button>
+              )}
             </nav>
           </div>
         </div>
@@ -242,98 +248,52 @@ const Reports = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {isAdmin ? (
-                    <>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reports</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reported Issues</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mail ID</th>
-                    </>
-                  ) : (
-                    <>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {activeTab === 'my-reports' ? 'Reported User' : 'Reported By'}
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </>
-                  )}
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reported User</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reported By</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {displayReports.map((report) => (
                   <tr key={report._id}>
-                    {isAdmin ? (
-                      <>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">{report.reason}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{report.reportedUser?.name || 'Unknown'}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getSeverityColor(report.severity)}`}>
-                            {report.severity}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(report.status)}`}>
-                            {report.status.replace('_', ' ')}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <button
-                            onClick={() => {
-                              setSelectedReport(report);
-                              setShowViewModal(true);
-                            }}
-                            className="text-blue-600 hover:text-blue-900 mr-3"
-                          >
-                            View
-                          </button>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {report.anonymous ? 'Anonymous' : (report.reportedBy?.email || 'N/A')}
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {report.createdAt && !isNaN(new Date(report.createdAt)) ? format(new Date(report.createdAt), 'MMM dd, yyyy') : '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            {activeTab === 'my-reports' ?
-                              (report.anonymous ? 'Anonymous' : (report.reportedUser?.name || 'Unknown User')) :
-                              (report.anonymous ? 'Anonymous' : (report.reportedBy?.name || 'Unknown User'))
-                            }
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">{report.reason}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getSeverityColor(report.severity)}`}>
-                            {report.severity}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(report.status)}`}>
-                            {report.status.replace('_', ' ')}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <button
-                            onClick={() => {
-                              setSelectedReport(report);
-                              setShowViewModal(true);
-                            }}
-                            className="text-blue-600 hover:text-blue-900 mr-3"
-                          >
-                            View
-                          </button>
-                        </td>
-                      </>
-                    )}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {report.createdAt && !isNaN(new Date(report.createdAt)) ? format(new Date(report.createdAt), 'MMM dd, yyyy') : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {report.reportedUser?.name || 'Unknown'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
+                      {report.reason}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getSeverityColor(report.severity)}`}>
+                        {report.severity}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(report.status)}`}>
+                        {report.status.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {report.reportedBy?._id === currentUserId ? 'You' : 
+                       (report.anonymous && !isAdmin ? 'Anonymous' : (report.reportedBy?.name || 'N/A'))}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => {
+                          setSelectedReport(report);
+                          setShowViewModal(true);
+                        }}
+                        className="text-blue-600 hover:text-blue-900"
+                      >
+                        View
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -494,7 +454,8 @@ const Reports = () => {
                   </span>
                 </div>
 
-                {!isAdmin && (
+                {/* Only show update for the original reporter */}
+                {!isAdmin && selectedReport.reportedBy?._id === currentUserId && (
                   <div className="border-t pt-4">
                     <h4 className="font-medium text-gray-900 mb-3">Update Report Status</h4>
                     <div className="space-y-3">

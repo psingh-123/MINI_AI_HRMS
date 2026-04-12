@@ -115,6 +115,7 @@ const getMyReports = async (req, res) => {
     }
 
     const reports = await Report.find(filter)
+      .populate('reportedBy', 'name email')
       .populate('reportedUser', 'name email')
       .populate('reviewedBy', 'name email')
       .sort({ createdAt: -1 })
@@ -171,20 +172,16 @@ const getReportsAgainstMe = async (req, res) => {
   }
 };
 
-// Update report status (for admin)
+// Update report status (only by the one who reported it)
 const updateReportStatus = async (req, res) => {
   try {
     const { reportId } = req.params;
     const { status, reviewNotes, resolution } = req.body;
-    const reviewedBy = req.user.id;
+    const currentUserId = req.user.id;
     const userRole = req.role;
 
     if (userRole === 'ADMIN' || userRole === 'HR') {
       return res.status(403).json({ message: 'Admin/HR not authorized to update report status' });
-    }
-
-    if (!['pending', 'under_review', 'resolved', 'dismissed'].includes(status)) {
-      return res.status(400).json({ message: 'Invalid status' });
     }
 
     const report = await Report.findById(reportId);
@@ -193,9 +190,18 @@ const updateReportStatus = async (req, res) => {
       return res.status(404).json({ message: 'Report not found' });
     }
 
+    // Verify ownership: Only the original reporter can update the status
+    if (report.reportedBy.toString() !== currentUserId.toString()) {
+      return res.status(403).json({ message: 'Only the original reporter can update the status of this report' });
+    }
+
+    if (!['pending', 'under_review', 'resolved', 'dismissed'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
     report.status = status;
-    report.reviewedBy = reviewedBy;
-    report.reviewNotes = reviewNotes;
+    report.reviewedBy = currentUserId;
+    report.reviewNotes = reviewNotes || report.reviewNotes;
 
     if (resolution) {
       report.resolution = resolution;

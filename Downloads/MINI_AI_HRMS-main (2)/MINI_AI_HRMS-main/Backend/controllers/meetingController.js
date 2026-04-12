@@ -503,7 +503,6 @@ const getActiveSessions = async (req, res) => {
   }
 };
 
-
 // ═══════════════════════════════════════════════════════
 //  JITSI MEET – Instant meeting helpers
 // ═══════════════════════════════════════════════════════
@@ -517,10 +516,18 @@ const createJitsiMeeting = async (req, res) => {
       return res.status(400).json({ message: 'Organization context missing' });
     }
 
+    const {
+      duration = 60,                  // minutes
+      accessType = 'all',             // 'all' | 'selected'
+      selectedEmployees = []          // array of employee IDs
+    } = req.body;
+
+    const durationMs = Number(duration) * 60 * 1000;
+    const jitsiExpiresAt = new Date(Date.now() + durationMs);
+
     // Generate a unique, URL-safe room ID
     const roomId = `hrms-${organizationId.toString().slice(-6)}-${crypto.randomBytes(4).toString('hex')}`;
     const jitsiLink = `https://meet.jit.si/${roomId}`;
-    const jitsiExpiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
 
     // Deactivate any existing active Jitsi meeting for this org
     await Meeting.updateMany(
@@ -528,7 +535,7 @@ const createJitsiMeeting = async (req, res) => {
       { jitsiStatus: 'ended' }
     );
 
-    // Use updateOne/upsert with just the Jitsi fields — avoids required-field issues on Meeting schema
+    // Upsert – avoids required-field issues (host etc.) on Meeting schema
     const doc = await Meeting.findOneAndUpdate(
       { organization: organizationId, jitsiRoomId: roomId },
       {
@@ -539,21 +546,31 @@ const createJitsiMeeting = async (req, res) => {
           scheduledEndTime: jitsiExpiresAt,
           status: 'started',
           meetingType: 'instant',
-          privacy: 'public',
+          privacy: accessType === 'all' ? 'public' : 'private',
           jitsiRoomId: roomId,
           jitsiLink,
           jitsiStatus: 'active',
-          jitsiExpiresAt
+          jitsiExpiresAt,
+          jitsiDuration: Number(duration),
+          jitsiAccessType: accessType,
+          jitsiSelectedEmployees: accessType === 'selected' ? selectedEmployees : []
         }
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
+    // Populate selected employees to return names to admin
+    const populated = await Meeting.findById(doc._id)
+      .populate('jitsiSelectedEmployees', 'name email');
+
     res.status(201).json({
       meetingId: doc._id,
       jitsiRoomId: roomId,
       jitsiLink,
-      jitsiExpiresAt
+      jitsiExpiresAt,
+      jitsiDuration: Number(duration),
+      jitsiAccessType: accessType,
+      jitsiSelectedEmployees: populated.jitsiSelectedEmployees || []
     });
   } catch (error) {
     console.error('Error creating Jitsi meeting:', error);
@@ -561,34 +578,99 @@ const createJitsiMeeting = async (req, res) => {
   }
 };
 
-// GET /meetings/jitsi/active  (any authenticated user)
+// GET /meetings/jitsi/active  (any authenticated user – access-controlled)
 const getActiveJitsiMeeting = async (req, res) => {
   try {
     const organizationId = req.organizationId;
-    const now = new Date();
+    const employeeId     = req.user?.id;   // employee._id (or org._id for admin)
+    const now            = new Date();
+    const mongoose       = require('mongoose');
+
+    console.log('── getActiveJitsiMeeting ──');
+    console.log('  employeeId     :', employeeId?.toString());
+    console.log('  organizationId :', organizationId?.toString());
+    console.log('  req.role       :', req.role);
+
+    // Admin check: robustly rely on auth role instead of complex ID mapping
+    const isAdmin = req.role === 'ADMIN' || organizationId?.toString() === employeeId?.toString();
+    console.log('  isAdmin        :', isAdmin);
+
+    // ── Build MongoDB query with access control baked in ──────────────────────
+    // For employees: only return meetings that are either:
+    //   a) accessType = 'all'
+    //   b) accessType = 'selected' AND their _id is in jitsiSelectedEmployees
+    // For admins: return any active meeting in the org
+    let accessFilter;
+    if (isAdmin) {
+      accessFilter = {}; // admin sees everything
+    } else {
+      // Convert employeeId to ObjectId for proper $in comparison
+      let empObjId;
+      try { empObjId = new mongoose.Types.ObjectId(employeeId); } catch { empObjId = employeeId; }
+
+      accessFilter = {
+        $or: [
+          { jitsiAccessType: 'all' },
+          { jitsiAccessType: { $exists: false } },   // legacy rows have no field → treat as 'all'
+          { jitsiAccessType: 'selected', jitsiSelectedEmployees: empObjId }
+        ]
+      };
+    }
 
     const meeting = await Meeting.findOne({
-      organization: organizationId,
-      jitsiStatus: 'active',
-      jitsiExpiresAt: { $gt: now }
-    }).sort({ createdAt: -1 });
+      organization:   organizationId,
+      jitsiStatus:    'active',
+      jitsiExpiresAt: { $gt: now },
+      ...accessFilter
+    })
+      .sort({ createdAt: -1 })
+      .populate('jitsiSelectedEmployees', 'name email _id');
 
     if (!meeting) {
+      console.log('  result: No accessible active meeting');
+      // Return NOT_INVITED if there IS an active meeting but employee is excluded
+      if (!isAdmin) {
+        const anyActive = await Meeting.findOne({
+          organization: organizationId,
+          jitsiStatus: 'active',
+          jitsiExpiresAt: { $gt: now }
+        });
+        if (anyActive) {
+          console.log('  result: Meeting exists but employee NOT_INVITED → 403');
+          return res.status(403).json({
+            message: 'You are not invited to this meeting',
+            code: 'NOT_INVITED'
+          });
+        }
+      }
       return res.status(404).json({ message: 'No active meeting' });
     }
 
+    console.log('  accessType     :', meeting.jitsiAccessType);
+    console.log('  selectedEmps   :', meeting.jitsiSelectedEmployees?.map(e => e._id?.toString()));
+    console.log('  result         : OK – returning meeting');
+
+    // jitsiExpiresAt is already verified > now by the DB query above — use it directly.
+    // DO NOT recompute from createdAt: upserted docs may have null createdAt
+    // which would produce a 1970 expiry and immediately mark the meeting as ended.
+    const expiresAt = meeting.jitsiExpiresAt;
+
     res.status(200).json({
-      meetingId: meeting._id,
-      jitsiRoomId: meeting.jitsiRoomId,
-      jitsiLink: meeting.jitsiLink,
-      jitsiExpiresAt: meeting.jitsiExpiresAt,
-      title: meeting.title
+      meetingId:              meeting._id,
+      jitsiRoomId:            meeting.jitsiRoomId,
+      jitsiLink:              meeting.jitsiLink,
+      jitsiExpiresAt:         expiresAt,
+      jitsiDuration:          meeting.jitsiDuration,
+      jitsiAccessType:        meeting.jitsiAccessType,
+      jitsiSelectedEmployees: isAdmin ? (meeting.jitsiSelectedEmployees || []) : [],
+      title:                  meeting.title
     });
   } catch (error) {
-    console.error('Error fetching active Jitsi meeting:', error);
+    console.error('Error in getActiveJitsiMeeting:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
 
 // POST /meetings/jitsi/end  (admin only)
 const endJitsiMeeting = async (req, res) => {

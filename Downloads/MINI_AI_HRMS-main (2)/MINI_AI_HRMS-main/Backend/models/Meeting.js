@@ -11,6 +11,9 @@ const meetingSchema = new mongoose.Schema({
   jitsiLink:     { type: String },
   jitsiStatus:   { type: String, enum: ['active', 'ended'], default: 'active' },
   jitsiExpiresAt: { type: Date },
+  jitsiDuration: { type: Number, default: 60 },          // meeting duration in minutes
+  jitsiAccessType: { type: String, enum: ['all', 'selected'], default: 'all' },
+  jitsiSelectedEmployees: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Employee' }],
   title: {
     type: String,
     required: true,
