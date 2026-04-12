@@ -23,6 +23,7 @@ import Attendance from "./pages/Attendance";
 import Leaderboard from "./pages/Leaderboard";
 import Meetings from "./pages/Meetings";
 import MeetingRoom from "./pages/MeetingRoom";
+import QRAttendance from "./pages/QRAttendance";
 
 function App() {
   const userRole = localStorage.getItem("userRole")?.toLowerCase() || '';
@@ -78,6 +79,7 @@ function App() {
           <Route path="chat" element={<Chat />} />
           <Route path="reports" element={<Reports />} />
           <Route path="attendance" element={<Attendance />} />
+          <Route path="qr-attendance" element={<QRAttendance />} />
           <Route path="leaderboard" element={<Leaderboard />} />
           <Route path="meetings" element={<Meetings />} />
         </Route>
@@ -96,6 +98,7 @@ function App() {
           <Route path="profile" element={<EmployeeProfile />} />
           <Route path="chat" element={<Chat />} />
           <Route path="report-abuse" element={<Reports />} />
+          <Route path="qr-attendance" element={<QRAttendance />} />
           <Route path="meetings" element={<Meetings />} />
         </Route>
 

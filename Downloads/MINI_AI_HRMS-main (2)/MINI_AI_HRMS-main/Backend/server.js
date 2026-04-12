@@ -1,3 +1,5 @@
+require('dotenv').config(); // ← MUST be first so env vars load before any require()
+
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
@@ -22,7 +24,7 @@ const meetingRoutes = require("./routes/meetingRoutes");
 // Middleware
 const { errorHandler, notFound } = require("./middleware/errorMiddleWare");
 
-dotenv.config();
+// dotenv.config() already called above – kept here for clarity
 
 const app = express();
 

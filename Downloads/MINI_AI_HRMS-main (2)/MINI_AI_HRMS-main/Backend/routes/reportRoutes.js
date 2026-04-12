@@ -25,6 +25,6 @@ router.get('/against-me', getReportsAgainstMe);
 // Admin only routes
 router.get('/all', protectAdmin, getAllReports);
 router.get('/stats', protectAdmin, getReportStats);
-router.patch('/:reportId/status', protectAdmin, updateReportStatus);
+router.patch('/:reportId/status', protectEmployee, updateReportStatus);
 
 module.exports = router;

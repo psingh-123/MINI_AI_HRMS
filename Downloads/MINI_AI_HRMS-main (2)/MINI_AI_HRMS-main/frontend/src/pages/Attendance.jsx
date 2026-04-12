@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import API from '../services/api';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
@@ -170,14 +171,28 @@ const Attendance = () => {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Attendance Management</h1>
-          {isAdmin && (
-            <button
-              onClick={() => setShowManualModal(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Add Manual Entry
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            {isAdmin && (
+              <Link
+                to="/admin/qr-attendance"
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 3.5a.5.5 0 11-1 0 .5.5 0 011 0z" />
+                </svg>
+                QR Attendance
+              </Link>
+            )}
+            {isAdmin && (
+              <button
+                onClick={() => setShowManualModal(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Add Manual Entry
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Today's Status Card */}

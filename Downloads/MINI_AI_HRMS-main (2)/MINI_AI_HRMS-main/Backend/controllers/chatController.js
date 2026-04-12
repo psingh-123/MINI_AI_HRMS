@@ -126,7 +126,10 @@ const getUserChats = async (req, res) => {
 
     const query = { organization: organizationId };
     if (isAdmin) {
-      query.isAdminChat = true;
+      query.$or = [
+        { isAdminChat: true },
+        { participants: currentUserId }
+      ];
     } else {
       query.participants = currentUserId;
     }

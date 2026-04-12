@@ -5,7 +5,7 @@ const employeeSchema = new mongoose.Schema(
   {
     organizationId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Organization1",
+      ref: "Organization",
       required: true,
     },
 

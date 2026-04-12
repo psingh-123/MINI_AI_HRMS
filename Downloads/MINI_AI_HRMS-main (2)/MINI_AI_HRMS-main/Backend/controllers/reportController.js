@@ -177,6 +177,11 @@ const updateReportStatus = async (req, res) => {
     const { reportId } = req.params;
     const { status, reviewNotes, resolution } = req.body;
     const reviewedBy = req.user.id;
+    const userRole = req.role;
+
+    if (userRole === 'ADMIN' || userRole === 'HR') {
+      return res.status(403).json({ message: 'Admin/HR not authorized to update report status' });
+    }
 
     if (!['pending', 'under_review', 'resolved', 'dismissed'].includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });

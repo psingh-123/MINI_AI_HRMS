@@ -155,6 +155,8 @@ const Employee = require("../models/Employee");
 ==================================================
 */
 const addEmployee = async (req, res) => {
+  console.log("addEmployee: req.body ->", req.body);
+  console.log("addEmployee: req.organizationId ->", req.organizationId);
   try {
     const {
       name,

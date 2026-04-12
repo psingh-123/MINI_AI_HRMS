@@ -81,8 +81,9 @@ function AddEmployee() {
       navigate("/admin/employees");
     } catch (err) {
       console.error("Error adding employee:", err);
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || "Failed to add employee. Please try again.";
       setErrors({
-        submit: err.response?.data?.message || "Failed to add employee. Please try again.",
+        submit: errorMessage,
       });
     } finally {
       setLoading(false);

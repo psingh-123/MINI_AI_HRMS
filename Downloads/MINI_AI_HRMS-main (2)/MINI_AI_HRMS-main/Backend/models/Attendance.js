@@ -74,7 +74,7 @@ attendanceSchema.index({ organization: 1, employee: 1, date: -1 });
 attendanceSchema.index({ organization: 1, date: -1 });
 attendanceSchema.index({ employee: 1, date: -1 });
 
-attendanceSchema.pre('save', function(next) {
+attendanceSchema.pre('save', async function() {
     if (this.checkIn && this.checkOut) {
         const checkInTime = new Date(this.checkIn.time);
         const checkOutTime = new Date(this.checkOut.time);
@@ -85,7 +85,6 @@ attendanceSchema.pre('save', function(next) {
             this.overtimeHours = Math.round((this.totalHours - 8) * 100) / 100;
         }
     }
-    next();
 });
 
 module.exports = mongoose.model('Attendance', attendanceSchema);

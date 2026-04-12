@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import API from "../services/api";
 import { getContract } from "../contracts/utils/contract";
@@ -306,7 +306,6 @@ function EmployeeDashboard() {
           </div>
         </div>
 
-        {/* Tasks Section */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
           {/* Section Header */}
           <div className="border-b border-slate-100 bg-slate-50/50 px-6 py-4">
