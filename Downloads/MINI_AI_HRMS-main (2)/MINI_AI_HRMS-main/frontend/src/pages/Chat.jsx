@@ -229,13 +229,13 @@ const Chat = () => {
     if (chat.isAdminChat) {
       const userRole = localStorage.getItem('userRole')?.toUpperCase();
       if (userRole === 'ADMIN' || userRole === 'HR') {
-        return chat.participants?.[0]?.profileImage || 'https://via.placeholder.com/40';
+        return resolveProfileImageUrl(chat.participants?.[0]?.profileImage) || 'https://via.placeholder.com/40';
       }
       return 'https://via.placeholder.com/40/EF4444/FFFFFF?text=HR';
     }
     const currentUserId = localStorage.getItem('userId');
     const otherParticipant = chat.participants?.find(p => p._id !== currentUserId);
-    return otherParticipant?.profileImage || 'https://via.placeholder.com/40';
+    return resolveProfileImageUrl(otherParticipant?.profileImage) || 'https://via.placeholder.com/40';
   };
 
   const resolveProfileImageUrl = (profileImage) => {
