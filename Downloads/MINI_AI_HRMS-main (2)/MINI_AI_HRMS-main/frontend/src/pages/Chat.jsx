@@ -551,7 +551,7 @@ const Chat = () => {
                   className="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors duration-100"
                 >
                   <Avatar
-                    src={resolveProfileImageUrl(employee.profileImage || employee.profilePic)}
+                    src={resolveProfileImageUrl(getProfileImageValue(employee))}
                     name={employee.name}
                     alt={employee.name}
                     className="w-9 h-9 rounded-full object-cover shadow-sm ring-2 ring-white"
@@ -613,7 +613,7 @@ const Chat = () => {
                     className="w-4 h-4 rounded accent-blue-600"
                   />
                   <Avatar
-                    src={resolveProfileImageUrl(employee.profileImage || employee.profilePic)}
+                    src={resolveProfileImageUrl(getProfileImageValue(employee))}
                     name={employee.name}
                     alt={employee.name}
                     className="w-8 h-8 rounded-full object-cover shadow-sm"
