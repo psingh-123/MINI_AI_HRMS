@@ -223,6 +223,10 @@ const Chat = () => {
     return otherParticipant?.name || 'Unknown User';
   };
 
+  const getProfileImageValue = (person) => {
+    return person?.profilePic || person?.profileImage || person?.avatar || person?.photo || null;
+  };
+
   const getChatImage = (chat) => {
     if (!chat) return null;
     if (chat.isGroupChat) {
