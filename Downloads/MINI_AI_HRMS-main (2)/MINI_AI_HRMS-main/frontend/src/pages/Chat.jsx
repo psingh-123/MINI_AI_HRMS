@@ -524,10 +524,12 @@ const Chat = () => {
                   onClick={() => createOneOnOneChat(employee._id)}
                   className="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors duration-100"
                 >
-                  <img
-                    src={employee.profileImage || 'https://via.placeholder.com/40'}
+                  <Avatar
+                    src={resolveProfileImageUrl(employee.profileImage)}
+                    name={employee.name}
                     alt={employee.name}
                     className="w-9 h-9 rounded-full object-cover shadow-sm ring-2 ring-white"
+                    fallbackClassName="w-9 h-9 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-semibold shadow-sm ring-2 ring-white select-none"
                   />
                   <span className="text-sm font-medium text-slate-700">{employee.name}</span>
                 </div>
