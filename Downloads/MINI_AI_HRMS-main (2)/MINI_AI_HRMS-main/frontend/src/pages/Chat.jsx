@@ -576,8 +576,8 @@ const Chat = () => {
                 <label key={employee._id} className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors duration-100">
                   <input
                     type="checkbox"
-                    checked={selectedParticipants.includes(employee._id)}
-                    onChange={(e) => {
+                  checked={selectedParticipants.includes(employee._id)}
+                  onChange={(e) => {
                       if (e.target.checked) {
                         setSelectedParticipants([...selectedParticipants, employee._id]);
                       } else {
@@ -586,10 +586,12 @@ const Chat = () => {
                     }}
                     className="w-4 h-4 rounded accent-blue-600"
                   />
-                  <img
-                    src={employee.profileImage || 'https://via.placeholder.com/40'}
+                  <Avatar
+                    src={resolveProfileImageUrl(employee.profileImage)}
+                    name={employee.name}
                     alt={employee.name}
                     className="w-8 h-8 rounded-full object-cover shadow-sm"
+                    fallbackClassName="w-8 h-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-[11px] font-semibold shadow-sm select-none"
                   />
                   <span className="text-sm font-medium text-slate-700">{employee.name}</span>
                 </label>
