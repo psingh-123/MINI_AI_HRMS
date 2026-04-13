@@ -231,13 +231,16 @@ const Chat = () => {
     if (chat.isAdminChat) {
       const userRole = localStorage.getItem('userRole')?.toUpperCase();
       if (userRole === 'ADMIN' || userRole === 'HR') {
-        return resolveProfileImageUrl(chat.participants?.[0]?.profileImage);
+        return resolveProfileImageUrl(chat.participants?.[0]?.profileImage || chat.participants?.[0]?.profilePic);
       }
       return HR_AVATAR_URL;
     }
     const currentUserId = localStorage.getItem('userId');
     const otherParticipant = chat.participants?.find(p => p._id !== currentUserId);
-    return resolveProfileImageUrl(otherParticipant?.profileImage);
+    const dp =
+      resolveProfileImageUrl(otherParticipant?.profileImage || otherParticipant?.profilePic) ||
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(otherParticipant?.name || 'User')}`;
+    return dp;
   };
 
   const resolveProfileImageUrl = (profileImage) => {
@@ -316,7 +319,8 @@ const Chat = () => {
   };
 
   const getMessageSenderImage = (message) => {
-    return resolveProfileImageUrl(getMessageSender(message)?.profileImage);
+    const sender = getMessageSender(message);
+    return resolveProfileImageUrl(sender?.profileImage || sender?.profilePic);
   };
 
   return (
@@ -543,7 +547,7 @@ const Chat = () => {
                   className="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors duration-100"
                 >
                   <Avatar
-                    src={resolveProfileImageUrl(employee.profileImage)}
+                    src={resolveProfileImageUrl(employee.profileImage || employee.profilePic)}
                     name={employee.name}
                     alt={employee.name}
                     className="w-9 h-9 rounded-full object-cover shadow-sm ring-2 ring-white"
@@ -605,7 +609,7 @@ const Chat = () => {
                     className="w-4 h-4 rounded accent-blue-600"
                   />
                   <Avatar
-                    src={resolveProfileImageUrl(employee.profileImage)}
+                    src={resolveProfileImageUrl(employee.profileImage || employee.profilePic)}
                     name={employee.name}
                     alt={employee.name}
                     className="w-8 h-8 rounded-full object-cover shadow-sm"
