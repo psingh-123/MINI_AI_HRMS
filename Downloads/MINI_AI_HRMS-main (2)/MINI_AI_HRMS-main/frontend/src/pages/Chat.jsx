@@ -235,14 +235,14 @@ const Chat = () => {
     if (chat.isAdminChat) {
       const userRole = localStorage.getItem('userRole')?.toUpperCase();
       if (userRole === 'ADMIN' || userRole === 'HR') {
-        return resolveProfileImageUrl(chat.participants?.[0]?.profileImage || chat.participants?.[0]?.profilePic);
+        return resolveProfileImageUrl(getProfileImageValue(chat.participants?.[0]));
       }
       return HR_AVATAR_URL;
     }
     const currentUserId = localStorage.getItem('userId');
     const otherParticipant = chat.participants?.find(p => p._id !== currentUserId);
     const dp =
-      resolveProfileImageUrl(otherParticipant?.profileImage || otherParticipant?.profilePic) ||
+      resolveProfileImageUrl(getProfileImageValue(otherParticipant)) ||
       `https://ui-avatars.com/api/?name=${encodeURIComponent(otherParticipant?.name || 'User')}`;
     return dp;
   };
