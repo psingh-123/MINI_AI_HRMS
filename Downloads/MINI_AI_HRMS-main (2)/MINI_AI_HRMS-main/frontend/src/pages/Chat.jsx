@@ -19,11 +19,18 @@ const Chat = () => {
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
-  // Token is handled by the API service
-  const API_URL = window.location.origin.replace('5173', '5000');
+  const SERVER_ORIGIN = (() => {
+    const baseURL = API?.defaults?.baseURL;
+    if (!baseURL) return window.location.origin.replace('5173', '5000');
+    try {
+      return new URL(baseURL).origin;
+    } catch {
+      return baseURL.replace(/\/api\/?$/, '');
+    }
+  })();
 
   useEffect(() => {
-    const newSocket = io(API_URL);
+    const newSocket = io(SERVER_ORIGIN);
     setSocket(newSocket);
 
     newSocket.on('receive-message', (data) => {
@@ -50,7 +57,7 @@ const Chat = () => {
     });
 
     return () => newSocket.close();
-  }, [selectedChat]);
+  }, [selectedChat, SERVER_ORIGIN]);
 
   useEffect(() => {
     fetchChats();
