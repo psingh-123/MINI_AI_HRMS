@@ -21,6 +21,10 @@ const organizationSchema = new mongoose.Schema(
     companySize: {
       type: String,
     },
+    profilePic: {
+      type: String,
+      default: "",
+    },
   },
   { timestamps: true }
 );

@@ -1,9 +1,11 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
+
 
 const Organization = require("../models/Organization");
 const Employee = require("../models/Employee");
+const Organization1 = require("../models/Organization1");
+const User = require("../models/User");
 
 // Generate Token
 const generateToken = (id, role, organizationId) => {
@@ -143,4 +145,50 @@ const getProfile = async (req, res) => {
   }
 };
 
-module.exports = { registerAdmin, loginAdmin, loginEmployee, login, getProfile };
+const uploadProfilePic = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Please upload a file" });
+    }
+
+    const userId = req.user.id;
+    const profilePicUrl = `/uploads/profile_pics/${req.file.filename}`;
+
+    // Try updating in all possible models
+    let updated = false;
+
+    // 1. Try Employee
+    let user = await Employee.findByIdAndUpdate(userId, { profilePic: profilePicUrl }, { new: true });
+    if (user) updated = true;
+
+    // 2. Try Organization
+    if (!updated) {
+      user = await Organization.findByIdAndUpdate(userId, { profilePic: profilePicUrl }, { new: true });
+      if (user) updated = true;
+    }
+    
+    // 3. Try Organization1
+    if (!updated) {
+      user = await Organization1.findByIdAndUpdate(userId, { profilePic: profilePicUrl }, { new: true });
+      if (user) updated = true;
+    }
+
+    // 4. Try User
+    if (!updated) {
+      user = await User.findByIdAndUpdate(userId, { profilePic: profilePicUrl }, { new: true });
+      if (user) updated = true;
+    }
+
+    if (updated) {
+      res.json({ message: "Profile picture updated successfully", profilePic: profilePicUrl });
+    } else {
+      res.status(404).json({ message: "User not found" });
+    }
+
+  } catch (error) {
+    console.error("uploadProfilePic error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+module.exports = { registerAdmin, loginAdmin, loginEmployee, login, getProfile, uploadProfilePic };

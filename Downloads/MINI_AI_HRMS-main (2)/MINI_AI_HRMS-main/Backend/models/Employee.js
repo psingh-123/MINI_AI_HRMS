@@ -49,6 +49,10 @@ const employeeSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    profilePic: {
+      type: String,
+      default: "",
+    },
   },
   { timestamps: true }
 );

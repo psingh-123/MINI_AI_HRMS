@@ -4,6 +4,7 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const http = require("http");
+const path = require("path");
 const { Server } = require("socket.io");
 const orgRoutes = require("./routes/orgRoutes");
 
@@ -42,6 +43,9 @@ app.use(
 
 app.use(express.json({ limit: '50mb' })); // for JSON body parsing (increased for base64 image proofs)
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Static folder for file uploads
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Connect Database
 connectDB();

@@ -6,7 +6,10 @@ const {
   loginEmployee,
   login,
   getProfile,
+  uploadProfilePic,
 } = require("../controllers/authController");
+
+const upload = require("../utils/fileUpload");
 
 const { protect } = require("../middleware/authMiddleware");
 
@@ -15,6 +18,7 @@ router.post("/admin/login", loginAdmin);
 
 router.post("/login", login);
 router.get("/profile", protect, getProfile);
+router.post("/upload-profile-pic", protect, upload.single('profilePic'), uploadProfilePic);
 router.get("/debug/me", protect, (req, res) => {
   res.json({
     user: req.user,

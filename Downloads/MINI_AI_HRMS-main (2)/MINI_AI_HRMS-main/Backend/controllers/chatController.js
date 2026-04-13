@@ -43,9 +43,8 @@ const getOrCreateChat = async (req, res) => {
     }
 
     let chat = await Chat.findOne(query)
-      .populate('participants', 'name email profileImage')
-      .populate('messages.sender', 'name profileImage')
-      .populate('linkedReport', 'reason status');
+      .populate('participants', 'name email profilePic')
+      .populate('messages.sender', 'name profilePic');
 
     if (!chat) {
       // Create new chat
@@ -59,9 +58,8 @@ const getOrCreateChat = async (req, res) => {
       
       // Populate the newly created chat
       chat = await Chat.findById(chat._id)
-        .populate('participants', 'name email profileImage')
-        .populate('messages.sender', 'name profileImage')
-        .populate('linkedReport', 'reason status');
+        .populate('participants', 'name email profilePic')
+        .populate('messages.sender', 'name profilePic');
     }
 
     res.status(200).json(chat);
@@ -107,8 +105,8 @@ const createGroupChat = async (req, res) => {
     await groupChat.save();
 
     const populatedChat = await Chat.findById(groupChat._id)
-      .populate('participants', 'name email profileImage')
-      .populate('groupAdmin', 'name profileImage');
+      .populate('participants', 'name email profilePic')
+      .populate('groupAdmin', 'name profilePic');
 
     res.status(201).json(populatedChat);
   } catch (error) {
@@ -135,10 +133,9 @@ const getUserChats = async (req, res) => {
     }
 
     const chats = await Chat.find(query)
-    .populate('participants', 'name email profileImage')
-    .populate('groupAdmin', 'name profileImage')
+    .populate('participants', 'name email profilePic')
+    .populate('groupAdmin', 'name profilePic')
     .populate('lastMessage.sender', 'name')
-    .populate('linkedReport', 'reason status severity')
     .sort({ updatedAt: -1 });
 
     res.status(200).json(chats);
@@ -185,8 +182,8 @@ const sendMessage = async (req, res) => {
     await chat.save();
 
     const populatedChat = await Chat.findById(chatId)
-      .populate('participants', 'name email profileImage')
-      .populate('messages.sender', 'name profileImage');
+      .populate('participants', 'name email profilePic')
+      .populate('messages.sender', 'name profilePic');
 
     // Get the newly added message
     const messageIndex = populatedChat.messages.length - 1;
@@ -250,11 +247,10 @@ const getChatDetails = async (req, res) => {
     const isAdmin = req.role === 'ADMIN' || req.role === 'HR';
 
     const chat = await Chat.findById(chatId)
-      .populate('participants', 'name email profileImage')
-      .populate('groupAdmin', 'name profileImage')
-      .populate('messages.sender', 'name profileImage')
-      .populate('messages.readBy.user', 'name')
-      .populate('linkedReport', 'reason status description');
+      .populate('participants', 'name email profilePic')
+      .populate('groupAdmin', 'name profilePic')
+      .populate('messages.sender', 'name profilePic')
+      .populate('messages.readBy.user', 'name');
 
     if (!chat) {
       return res.status(404).json({ message: 'Chat not found' });
@@ -303,8 +299,8 @@ const addParticipant = async (req, res) => {
     await chat.save();
 
     const updatedChat = await Chat.findById(chatId)
-      .populate('participants', 'name email profileImage')
-      .populate('groupAdmin', 'name profileImage');
+      .populate('participants', 'name email profilePic')
+      .populate('groupAdmin', 'name profilePic');
 
     res.status(200).json(updatedChat);
   } catch (error) {

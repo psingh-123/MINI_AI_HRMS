@@ -29,6 +29,10 @@ const userSchema = new mongoose.Schema(
       ref: "Organization1",
       required: true,
     },
+    profilePic: {
+      type: String,
+      default: "",
+    },
   },
   { timestamps: true }
 );

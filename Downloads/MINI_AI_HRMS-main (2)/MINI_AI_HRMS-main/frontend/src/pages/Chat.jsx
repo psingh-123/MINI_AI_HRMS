@@ -21,6 +21,7 @@ const Chat = () => {
 
   // Token is handled by the API service
   const API_URL = window.location.origin.replace('5173', '5000');
+  const SERVER_URL = API_URL;
 
   useEffect(() => {
     const newSocket = io(API_URL);
@@ -196,9 +197,6 @@ const Chat = () => {
 
   const getChatName = (chat) => {
     if (!chat) return 'Unknown';
-    if (chat.linkedReport) {
-      return `Report: ${chat.linkedReport.reason || 'Issue'}`;
-    }
     if (chat.isAdminChat) {
       const userRole = localStorage.getItem('userRole')?.toUpperCase();
       if (userRole === 'ADMIN' || userRole === 'HR') {
@@ -222,13 +220,17 @@ const Chat = () => {
     if (chat.isAdminChat) {
       const userRole = localStorage.getItem('userRole')?.toUpperCase();
       if (userRole === 'ADMIN' || userRole === 'HR') {
-        return chat.participants?.[0]?.profileImage || 'https://via.placeholder.com/40';
+        return chat.participants?.[0]?.profilePic 
+          ? `${SERVER_URL}${chat.participants[0].profilePic}` 
+          : 'https://via.placeholder.com/40';
       }
       return 'https://via.placeholder.com/40/EF4444/FFFFFF?text=HR'; // HR support icon
     }
     const currentUserId = localStorage.getItem('userId');
     const otherParticipant = chat.participants?.find(p => p._id !== currentUserId);
-    return otherParticipant?.profileImage || 'https://via.placeholder.com/40';
+    return otherParticipant?.profilePic 
+      ? `${SERVER_URL}${otherParticipant.profilePic}` 
+      : 'https://via.placeholder.com/40';
   };
 
   return (
@@ -332,19 +334,26 @@ const Chat = () => {
                   key={index}
                   className={`flex ${(message.sender?._id || message.sender) === localStorage.getItem('userId') ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${(message.sender?._id || message.sender) === localStorage.getItem('userId')
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-200 text-gray-800'
-                      }`}
-                  >
-                    <p className="text-sm">{message.content}</p>
-                    {message.timestamp && !isNaN(new Date(message.timestamp)) && (
-                      <p className={`text-xs mt-1 ${(message.sender?._id || message.sender) === localStorage.getItem('userId') ? 'text-blue-100' : 'text-gray-500'
-                        }`}>
-                        {format(new Date(message.timestamp), 'HH:mm')}
-                      </p>
-                    )}
+                  <div className={`flex items-end space-x-2 ${(message.sender?._id || message.sender) === localStorage.getItem('userId') ? 'flex-row-reverse space-x-reverse' : 'flex-row'}`}>
+                    <img 
+                      src={message.sender?.profilePic ? `${SERVER_URL}${message.sender.profilePic}` : 'https://via.placeholder.com/32'} 
+                      alt="" 
+                      className="w-8 h-8 rounded-full border border-gray-200"
+                    />
+                    <div
+                      className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl shadow-sm ${(message.sender?._id || message.sender) === localStorage.getItem('userId')
+                          ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-br-none'
+                          : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
+                        }`}
+                    >
+                      <p className="text-sm leading-relaxed">{message.content}</p>
+                      {message.timestamp && !isNaN(new Date(message.timestamp)) && (
+                        <p className={`text-[10px] mt-1 font-medium uppercase tracking-tighter ${(message.sender?._id || message.sender) === localStorage.getItem('userId') ? 'text-blue-100 opacity-70' : 'text-gray-400'
+                          }`}>
+                          {format(new Date(message.timestamp), 'HH:mm')}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -402,11 +411,11 @@ const Chat = () => {
                   className="flex items-center p-3 hover:bg-gray-100 rounded-lg cursor-pointer"
                 >
                   <img
-                    src={employee.profileImage || 'https://via.placeholder.com/40'}
+                    src={employee.profilePic ? `${SERVER_URL}${employee.profilePic}` : 'https://via.placeholder.com/40'}
                     alt={employee.name}
-                    className="w-10 h-10 rounded-full mr-3"
+                    className="w-10 h-10 rounded-full mr-3 border border-gray-200"
                   />
-                  <span className="font-medium">{employee.name}</span>
+                  <span className="font-medium text-gray-700">{employee.name}</span>
                 </div>
               ))}
             </div>
@@ -448,11 +457,11 @@ const Chat = () => {
                     className="mr-3"
                   />
                   <img
-                    src={employee.profileImage || 'https://via.placeholder.com/40'}
+                    src={employee.profilePic ? `${SERVER_URL}${employee.profilePic}` : 'https://via.placeholder.com/40'}
                     alt={employee.name}
-                    className="w-8 h-8 rounded-full mr-2"
+                    className="w-8 h-8 rounded-full mr-2 border border-gray-100"
                   />
-                  <span>{employee.name}</span>
+                  <span className="text-gray-700">{employee.name}</span>
                 </label>
               ))}
             </div>
