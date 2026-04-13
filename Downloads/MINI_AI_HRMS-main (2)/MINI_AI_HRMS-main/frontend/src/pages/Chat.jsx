@@ -324,7 +324,7 @@ const Chat = () => {
 
   const getMessageSenderImage = (message) => {
     const sender = getMessageSender(message);
-    return resolveProfileImageUrl(sender?.profileImage || sender?.profilePic);
+    return resolveProfileImageUrl(getProfileImageValue(sender));
   };
 
   return (
