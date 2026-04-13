@@ -256,6 +256,36 @@ const Chat = () => {
     return `${first}${second}`.toUpperCase();
   };
 
+  const Avatar = ({ src, name, alt, className, fallbackClassName }) => {
+    const [failed, setFailed] = useState(false);
+
+    useEffect(() => {
+      setFailed(false);
+    }, [src]);
+
+    if (!src || failed) {
+      return (
+        <div
+          className={fallbackClassName || className}
+          aria-label={alt || name || 'avatar'}
+          title={name || alt}
+        >
+          {getInitials(name || alt)}
+        </div>
+      );
+    }
+
+    return (
+      <img
+        src={src}
+        alt={alt || name || 'avatar'}
+        title={name || alt}
+        className={className}
+        onError={() => setFailed(true)}
+      />
+    );
+  };
+
   return (
     <div className="flex h-screen bg-slate-100">
       {/* Chat List Sidebar */}
