@@ -378,6 +378,7 @@ function Navbar() {
   const dropdownRef = useRef(null);
 
   const token = localStorage.getItem("employeeToken");
+  const baseURL = (API?.defaults?.baseURL || "").replace(/\/api\/?$/, "");
 
   const decodeJwt = (t) => {
     try {
@@ -436,6 +437,13 @@ function Navbar() {
     day: "numeric",
   });
 
+  const profilePath = user?.profilePic || user?.profileImage;
+  const profileSrc = profilePath
+    ? (/^(https?:|data:|blob:)/i.test(profilePath)
+      ? profilePath
+      : `${baseURL}${profilePath.startsWith("/") ? "" : "/"}${profilePath}`)
+    : null;
+
   return (
     <>
       <style>{styles}</style>
@@ -493,9 +501,9 @@ function Navbar() {
                 aria-expanded={showProfileMenu}
               >
                 <div className="nb-avatar-wrap">
-                  {user?.profilePic ? (
+                  {profileSrc ? (
                     <img
-                      src={`${API.defaults.baseURL.replace("/api", "")}${user.profilePic}`}
+                      src={profileSrc}
                       alt={displayName}
                       className="nb-avatar-img"
                     />
