@@ -29,6 +29,8 @@ const Chat = () => {
     }
   })();
 
+  const baseURL = (API?.defaults?.baseURL || '').replace(/\/api\/?$/, '') || SERVER_ORIGIN;
+
   useEffect(() => {
     const newSocket = io(SERVER_ORIGIN);
     setSocket(newSocket);
@@ -243,8 +245,8 @@ const Chat = () => {
     const value = String(profileImage).trim();
     if (!value) return null;
     if (/^(https?:|data:|blob:)/i.test(value)) return value;
-    if (value.startsWith('/')) return `${SERVER_ORIGIN}${value}`;
-    return `${SERVER_ORIGIN}/${value}`;
+    if (value.startsWith('/')) return `${baseURL}${value}`;
+    return `${baseURL}/${value}`;
   };
 
   const svgToDataUrl = (svg) => {
