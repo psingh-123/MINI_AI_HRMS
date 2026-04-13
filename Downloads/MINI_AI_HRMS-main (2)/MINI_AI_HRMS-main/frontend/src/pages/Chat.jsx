@@ -386,12 +386,12 @@ const Chat = () => {
                   src={getChatImage(chat)}
                   name={getChatName(chat)}
                   alt={getChatName(chat)}
-                  className="w-11 h-11 rounded-full object-cover ring-2 ring-white shadow-sm"
-                  fallbackClassName="w-11 h-11 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-sm font-semibold ring-2 ring-white shadow-sm select-none"
+                  className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-sm"
+                  fallbackClassName="w-10 h-10 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-sm font-semibold ring-2 ring-white shadow-sm select-none"
                 />
                 <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white"></span>
               </div>
-              <div className="flex-1 ml-3 min-w-0">
+              <div className="flex-1 ml-3 min-w-0 pt-0.5">
                 <div className="flex justify-between items-baseline">
                   <h3 className={`text-sm font-semibold truncate ${selectedChat?._id === chat._id ? 'text-blue-700' : 'text-slate-800'}`}>
                     {getChatName(chat)}
