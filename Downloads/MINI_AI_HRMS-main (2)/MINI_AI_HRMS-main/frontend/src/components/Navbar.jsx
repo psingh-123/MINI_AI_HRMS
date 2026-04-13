@@ -1,257 +1,588 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import API from "../services/api";
+
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Playfair+Display:wght@400;500&display=swap');
+
+  .nb-root {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    font-family: 'DM Sans', sans-serif;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  }
+
+  .nb-inner {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nb-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .nb-brand-mark {
+    width: 34px;
+    height: 34px;
+    background: #0f172a;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .nb-brand-mark svg {
+    width: 16px;
+    height: 16px;
+    color: white;
+  }
+
+  .nb-greeting {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .nb-greeting-text {
+    font-size: 13.5px;
+    font-weight: 400;
+    color: #64748b;
+    letter-spacing: 0.01em;
+    line-height: 1;
+  }
+
+  .nb-greeting-name {
+    font-family: 'Playfair Display', serif;
+    font-weight: 500;
+    font-size: 15px;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+    line-height: 1;
+    margin-top: 3px;
+  }
+
+  .nb-date-pill {
+    display: none;
+    font-size: 11.5px;
+    font-weight: 400;
+    color: #94a3b8;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    border-left: 1.5px solid #e2e8f0;
+    padding-left: 12px;
+    margin-left: 4px;
+    line-height: 1.2;
+  }
+
+  @media (min-width: 640px) {
+    .nb-date-pill { display: block; }
+  }
+
+  .nb-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .nb-icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    transition: background 0.15s ease, color 0.15s ease;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .nb-icon-btn:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+
+  .nb-icon-btn svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .nb-notif-dot {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 6px;
+    height: 6px;
+    background: #f43f5e;
+    border-radius: 50%;
+    border: 1.5px solid white;
+  }
+
+  .nb-divider {
+    width: 1px;
+    height: 22px;
+    background: #e2e8f0;
+    margin: 0 6px;
+    flex-shrink: 0;
+  }
+
+  .nb-profile-btn {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 5px 5px 5px 5px;
+    border-radius: 12px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .nb-profile-btn:hover {
+    background: #f8fafc;
+  }
+
+  .nb-avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .nb-avatar-img {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    object-fit: cover;
+    border: 1.5px solid #e2e8f0;
+  }
+
+  .nb-avatar-initials {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: #0f172a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: white;
+    letter-spacing: 0.03em;
+    border: 1.5px solid #e2e8f0;
+  }
+
+  .nb-status-dot {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    border: 1.5px solid white;
+  }
+
+  .nb-user-info {
+    text-align: left;
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .nb-user-info { display: block; }
+  }
+
+  .nb-user-name {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .nb-user-status {
+    font-size: 11px;
+    font-weight: 400;
+    color: #10b981;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    margin-top: 3px;
+  }
+
+  .nb-chevron {
+    width: 14px;
+    height: 14px;
+    color: #cbd5e1;
+    transition: transform 0.2s ease, color 0.15s ease;
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .nb-chevron { display: block; }
+  }
+
+  .nb-chevron.open {
+    transform: rotate(180deg);
+    color: #0f172a;
+  }
+
+  .nb-dropdown {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    width: 228px;
+    background: white;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.1), 0 2px 8px rgba(15, 23, 42, 0.06);
+    overflow: hidden;
+    z-index: 100;
+    animation: nb-drop 0.16s ease;
+    transform-origin: top right;
+  }
+
+  @keyframes nb-drop {
+    from { opacity: 0; transform: scale(0.96) translateY(-4px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .nb-dd-header {
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .nb-dd-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    background: #0f172a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .nb-dd-name {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+
+  .nb-dd-email {
+    font-size: 11.5px;
+    font-weight: 400;
+    color: #94a3b8;
+    margin-top: 2px;
+    line-height: 1;
+  }
+
+  .nb-dd-items {
+    padding: 6px;
+  }
+
+  .nb-dd-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 9px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    font-weight: 400;
+    color: #334155;
+    letter-spacing: 0.005em;
+    text-align: left;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+
+  .nb-dd-item:hover {
+    background: #f8fafc;
+    color: #0f172a;
+  }
+
+  .nb-dd-item svg {
+    width: 15px;
+    height: 15px;
+    color: #94a3b8;
+    flex-shrink: 0;
+    transition: color 0.12s ease;
+  }
+
+  .nb-dd-item:hover svg {
+    color: #475569;
+  }
+
+  .nb-dd-sep {
+    height: 1px;
+    background: #f1f5f9;
+    margin: 4px 6px;
+  }
+
+  .nb-dd-item.logout {
+    color: #ef4444;
+  }
+
+  .nb-dd-item.logout:hover {
+    background: #fef2f2;
+    color: #dc2626;
+  }
+
+  .nb-dd-item.logout svg {
+    color: #fca5a5;
+  }
+
+  .nb-dd-item.logout:hover svg {
+    color: #ef4444;
+  }
+`;
 
 function Navbar() {
   const navigate = useNavigate();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const dropdownRef = useRef(null);
 
   const token = localStorage.getItem("employeeToken");
 
-  // Lightweight JWT payload decoder (no external deps). Returns payload object or null.
   const decodeJwt = (t) => {
     try {
-      const parts = t.split('.');
+      const parts = t.split(".");
       if (parts.length < 2) return null;
-      let payload = parts[1];
-      // base64url -> base64
-      payload = payload.replace(/-/g, '+').replace(/_/g, '/');
-      // pad
+      let payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
       const pad = payload.length % 4;
-      if (pad) payload += '='.repeat(4 - pad);
-      const decoded = atob(payload);
-      return JSON.parse(decoded);
-    } catch (err) {
+      if (pad) payload += "=".repeat(4 - pad);
+      return JSON.parse(atob(payload));
+    } catch {
       return null;
     }
   };
 
   useEffect(() => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
-    const fetchUserData = async () => {
+    if (!token) return;
+    (async () => {
       try {
         const decoded = decodeJwt(token);
-        if (!decoded) {
-          setLoading(false);
-          return;
-        }
-
-        const userRole = decoded.role?.toUpperCase();
-        if (userRole === "EMPLOYEE" || userRole === "ADMIN" || userRole === "HR") {
+        if (!decoded) return;
+        const role = decoded.role?.toUpperCase();
+        if (["EMPLOYEE", "ADMIN", "HR"].includes(role)) {
           const res = await API.get("/auth/profile");
           setUser(res.data);
         }
       } catch (err) {
-        console.error("Error fetching profile:", err);
-        // If token is invalid, clear it
-        if (err.response?.status === 401) {
-          localStorage.removeItem("employeeToken");
-        }
-      } finally {
-        setLoading(false);
+        if (err.response?.status === 401) localStorage.removeItem("employeeToken");
       }
-    };
-
-    fetchUserData();
+    })();
   }, [token]);
 
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   const handleLogout = () => {
-    localStorage.removeItem("employeeToken");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("userId");
+    ["employeeToken", "userRole", "userId"].forEach((k) => localStorage.removeItem(k));
     navigate("/");
   };
 
-  // Get user's first name or fallback
-  const getFirstName = () => {
-    if (user?.name) {
-      return user.name.split(' ')[0];
-    }
-    // Try to get from token if user not loaded yet
-    const decoded = token ? decodeJwt(token) : null;
-    return decoded?.name?.split(' ')[0] || "Admin";
-  };
+  const decoded = token ? decodeJwt(token) : null;
+  const displayName = user?.name || decoded?.name || "Admin";
+  const firstName = displayName.split(" ")[0];
+  const initial = displayName.charAt(0).toUpperCase();
+  const email = user?.email || decoded?.email || "employee@company.com";
 
-  // Get user's initial
-  const getUserInitial = () => {
-    if (user?.name) {
-      return user.name.charAt(0).toUpperCase();
-    }
-    const decoded = token ? decodeJwt(token) : null;
-    return decoded?.name?.charAt(0)?.toUpperCase() || "A";
-  };
-
-  // Get user's email
-  const getUserEmail = () => {
-    if (user?.email) return user.email;
-    const decoded = token ? decodeJwt(token) : null;
-    return decoded?.email || "employee@company.com";
-  };
-
-  const firstName = getFirstName();
-  const userInitial = getUserInitial();
-  const userEmail = getUserEmail();
+  const dateStr = new Date().toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
 
   return (
-    <nav className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-100 shadow-sm">
-      <div className="px-4 sm:px-6 py-2 sm:py-3">
-        <div className="flex items-center justify-between">
-          {/* Left Section - Welcome Message */}
-          <div className="flex items-center space-x-3">
-            {/* Mobile Menu Indicator */}
-            <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center lg:hidden">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                      d="M4 6h16M4 12h16M4 18h16" />
+    <>
+      <style>{styles}</style>
+      <nav className="nb-root">
+        <div className="nb-inner">
+
+          {/* Left — brand mark + greeting */}
+          <div className="nb-brand">
+            <div className="nb-brand-mark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                <rect x="14" y="14" width="7" height="7" rx="1.5" />
               </svg>
             </div>
-            
-            <div>
-              <h2 className="text-sm sm:text-base lg:text-lg font-light text-slate-600">
-                Welcome back,
-                <span className="ml-1.5 font-medium bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  {user?.name || firstName}
-                </span>
-              </h2>
-              <p className="text-xs text-slate-400 hidden sm:block">
-                {new Date().toLocaleDateString('en-US', { 
-                  weekday: 'long',
-                  month: 'short', 
-                  day: 'numeric'
-                })}
-              </p>
+            <div className="nb-greeting">
+              <span className="nb-greeting-text">Good {getGreeting()},</span>
+              <span className="nb-greeting-name">{firstName}</span>
             </div>
+            <span className="nb-date-pill">{dateStr}</span>
           </div>
 
-          {/* Right Section - Actions */}
-          <div className="flex items-center space-x-2 sm:space-x-4">
-            {/* Search Button */}
-            <button className="p-2 rounded-lg hover:bg-slate-100 transition-colors text-slate-500 hover:text-indigo-600 hidden sm:block">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          {/* Right — actions + profile */}
+          <div className="nb-actions">
+
+            {/* Search */}
+            <button className="nb-icon-btn" aria-label="Search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+                strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M21 21l-5-5" />
               </svg>
             </button>
 
             {/* Notifications */}
-            <button className="p-2 rounded-lg hover:bg-slate-100 transition-colors text-slate-500 hover:text-indigo-600 relative">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            <button className="nb-icon-btn" aria-label="Notifications">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+                strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 01-3.46 0" />
               </svg>
-              <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white"></span>
+              <span className="nb-notif-dot" />
             </button>
 
-            {/* Profile Menu */}
-            <div className="relative">
+            <span className="nb-divider" />
+
+            {/* Profile */}
+            <div style={{ position: "relative" }} ref={dropdownRef}>
               <button
-                onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className="flex items-center space-x-2 sm:space-x-3 p-1.5 rounded-xl hover:bg-slate-100 transition-all duration-200 group"
+                className="nb-profile-btn"
+                onClick={() => setShowProfileMenu((p) => !p)}
+                aria-haspopup="true"
+                aria-expanded={showProfileMenu}
               >
-                {/* Avatar with Status */}
-                <div className="relative">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 
-                                flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
-                    <span className="text-sm sm:text-base font-medium text-white">
-                      {userInitial}
-                    </span>
-                  </div>
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+                <div className="nb-avatar-wrap">
+                  {user?.profilePic ? (
+                    <img
+                      src={`${API.defaults.baseURL.replace("/api", "")}${user.profilePic}`}
+                      alt={displayName}
+                      className="nb-avatar-img"
+                    />
+                  ) : (
+                    <div className="nb-avatar-initials">{initial}</div>
+                  )}
+                  <span className="nb-status-dot" />
                 </div>
 
-                {/* User Info */}
-                <div className="hidden md:block text-left">
-                  <p className="text-sm font-medium text-slate-700 group-hover:text-indigo-600 transition-colors">
-                    {user?.name || firstName}
-                  </p>
-                  <p className="text-xs text-slate-400 flex items-center space-x-1">
-                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                    <span>Online</span>
-                  </p>
+                <div className="nb-user-info">
+                  <p className="nb-user-name">{displayName}</p>
+                  <p className="nb-user-status">● Online</p>
                 </div>
 
-                {/* Chevron Icon */}
-                <svg className={`w-4 h-4 text-slate-400 hidden md:block transition-transform duration-200 
-                                ${showProfileMenu ? 'rotate-180' : ''}`} 
-                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <svg className={`nb-chevron${showProfileMenu ? " open" : ""}`}
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                  strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 9l6 6 6-6" />
                 </svg>
               </button>
 
-              {/* Dropdown Menu */}
               {showProfileMenu && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-20 animate-slideDown">
-                  {/* User Info Header */}
-                  <div className="px-4 py-3 border-b border-slate-100">
-                    <p className="text-sm font-medium text-slate-800">{user?.name || firstName}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">admin@gmail.com</p>
+                <div className="nb-dropdown" role="menu">
+                  {/* Header */}
+                  <div className="nb-dd-header">
+                    <div className="nb-dd-avatar">{initial}</div>
+                    <div>
+                      <p className="nb-dd-name">{displayName}</p>
+                      <p className="nb-dd-email">{email}</p>
+                    </div>
                   </div>
 
-                  {/* Menu Items */}
-                  <button
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      const userRole = localStorage.getItem("userRole")?.toLowerCase();
-                      if (userRole === "admin" || userRole === "hr") {
-                        navigate("/admin/dashboard");
-                      } else {
-                        navigate("/employee/profile");
-                      }
-                    }}
-                    className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-indigo-50 
-                             hover:text-indigo-600 flex items-center space-x-3 transition-colors group"
-                  >
-                    <svg className="w-4 h-4 text-slate-400 group-hover:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    <span>Your Profile</span>
-                  </button>
+                  <div className="nb-dd-items">
+                    {/* Profile */}
+                    <button
+                      className="nb-dd-item"
+                      role="menuitem"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        const role = localStorage.getItem("userRole")?.toLowerCase();
+                        navigate(role === "admin" || role === "hr" ? "/admin/dashboard" : "/employee/profile");
+                      }}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+                        strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                      </svg>
+                      Your profile
+                    </button>
 
-                  <button
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                    }}
-                    className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-indigo-50 
-                             hover:text-indigo-600 flex items-center space-x-3 transition-colors group"
-                  >
-                    <svg className="w-4 h-4 text-slate-400 group-hover:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <span>Settings</span>
-                  </button>
+                    {/* Settings */}
+                    <button
+                      className="nb-dd-item"
+                      role="menuitem"
+                      onClick={() => setShowProfileMenu(false)}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+                        strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+                      </svg>
+                      Settings
+                    </button>
 
-                  <div className="border-t border-slate-100 my-1"></div>
+                    <div className="nb-dd-sep" />
 
-                  <button
-                    onClick={handleLogout}
-                    className="w-full px-4 py-2.5 text-left text-sm text-rose-600 hover:bg-rose-50 
-                             flex items-center space-x-3 transition-colors group"
-                  >
-                    <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" 
-                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    <span>Logout</span>
-                  </button>
+                    {/* Logout */}
+                    <button className="nb-dd-item logout" role="menuitem" onClick={handleLogout}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+                        strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                      </svg>
+                      Sign out
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
           </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </>
   );
+}
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "morning";
+  if (h < 17) return "afternoon";
+  return "evening";
 }
 
 export default Navbar;
