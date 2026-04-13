@@ -342,13 +342,15 @@ const Chat = () => {
                 ${selectedChat?._id === chat._id
                   ? 'bg-blue-50 border-l-2 border-blue-600'
                   : 'hover:bg-slate-50 border-l-2 border-transparent'
-                }`}
+              }`}
             >
               <div className="relative flex-shrink-0">
-                <img
+                <Avatar
                   src={getChatImage(chat)}
+                  name={getChatName(chat)}
                   alt={getChatName(chat)}
                   className="w-11 h-11 rounded-full object-cover ring-2 ring-white shadow-sm"
+                  fallbackClassName="w-11 h-11 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-sm font-semibold ring-2 ring-white shadow-sm select-none"
                 />
                 <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white"></span>
               </div>
