@@ -19,7 +19,6 @@ const Chat = () => {
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
-  // Token is handled by the API service
   const API_URL = window.location.origin.replace('5173', '5000');
   const SERVER_URL = API_URL;
 
@@ -30,7 +29,6 @@ const Chat = () => {
     newSocket.on('receive-message', (data) => {
       if (selectedChat && data.chatId === selectedChat._id && data.message) {
         setMessages(prev => {
-          // Prevent duplicates from same event
           if (prev.find(m => m._id === data.message._id)) return prev;
           return [...prev, data.message];
         });
@@ -61,22 +59,18 @@ const Chat = () => {
   useEffect(() => {
     if (selectedChat) {
       fetchMessages(selectedChat._id);
-      if (socket) {
-        socket.emit('join-chat', selectedChat._id);
-      }
+      if (socket) socket.emit('join-chat', selectedChat._id);
     }
   }, [selectedChat, socket]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  useEffect(() => scrollToBottom(), [messages]);
 
   const fetchChats = async () => {
     try {
       const response = await API.get('/chat/');
       setChats(response.data);
     } catch (error) {
-      console.error('Error fetching chats:', error);
+      console.error(error);
     }
   };
 
@@ -85,7 +79,7 @@ const Chat = () => {
       const response = await API.get('/employees');
       setEmployees(response.data);
     } catch (error) {
-      console.error('Error fetching employees:', error);
+      console.error(error);
     }
   };
 
@@ -94,109 +88,54 @@ const Chat = () => {
       const response = await API.get(`/chat/${chatId}`);
       setMessages(response.data.messages || []);
     } catch (error) {
-      console.error('Error fetching messages:', error);
+      console.error(error);
     }
   };
 
-  const updateChatsList = () => {
-    fetchChats();
-  };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const createOneOnOneChat = async (participantId) => {
-    try {
-      const userRole = localStorage.getItem('userRole')?.toUpperCase();
-      const isAdmin = userRole === 'ADMIN' || userRole === 'HR';
-      
-      const response = await API.post('/chat/one-on-one', { 
-        participantId,
-        isAdminChat: isAdmin 
-      });
-      setSelectedChat(response.data);
-      setShowNewChatModal(false);
-      fetchChats();
-    } catch (error) {
-      console.error('Error creating chat:', error);
-    }
-  };
-
-  const createAdminChat = async () => {
-    try {
-      const myId = localStorage.getItem('userId');
-      const response = await API.post('/chat/one-on-one', {
-        participantId: myId,
-        isAdminChat: true
-      });
-      setSelectedChat(response.data);
-      fetchChats();
-    } catch (error) {
-      console.error('Error creating admin chat:', error);
-    }
-  };
-
-  const createGroupChat = async () => {
-    try {
-      const response = await API.post('/chat/group', { name: groupName, participants: selectedParticipants });
-      setSelectedChat(response.data);
-      setShowGroupChatModal(false);
-      setGroupName('');
-      setSelectedParticipants([]);
-      fetchChats();
-    } catch (error) {
-      console.error('Error creating group chat:', error);
-    }
-  };
+  const updateChatsList = () => fetchChats();
+  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedChat) return;
 
     try {
-      const response = await API.post('/chat/message', { chatId: selectedChat._id, content: newMessage });
+      const response = await API.post('/chat/message', {
+        chatId: selectedChat._id,
+        content: newMessage
+      });
+
       if (response.data?.message) {
-        if (socket) {
-          socket.emit('send-message', {
-            chatId: selectedChat._id,
-            message: response.data.message
-          });
-        }
+        socket?.emit('send-message', {
+          chatId: selectedChat._id,
+          message: response.data.message
+        });
         setMessages(prev => [...prev, response.data.message]);
       }
+
       setNewMessage('');
       setIsTyping(false);
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error(error);
     }
   };
 
   const handleTyping = () => {
     if (!isTyping && socket && selectedChat) {
       setIsTyping(true);
-      socket.emit('typing', {
-        chatId: selectedChat._id,
-        userName: 'You' // In real app, get from user context
-      });
+      socket.emit('typing', { chatId: selectedChat._id, userName: 'You' });
     }
 
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
+    clearTimeout(typingTimeoutRef.current);
 
     typingTimeoutRef.current = setTimeout(() => {
-      if (socket && selectedChat) {
-        socket.emit('stop-typing', {
-          chatId: selectedChat._id,
-          userName: 'You'
-        });
-      }
+      socket?.emit('stop-typing', { chatId: selectedChat._id, userName: 'You' });
       setIsTyping(false);
     }, 1000);
   };
 
   const getChatName = (chat) => {
     if (!chat) return 'Unknown';
+<<<<<<< HEAD
     if (chat.isAdminChat) {
       const userRole = localStorage.getItem('userRole')?.toUpperCase();
       if (userRole === 'ADMIN' || userRole === 'HR') {
@@ -207,12 +146,16 @@ const Chat = () => {
     if (chat.isGroupChat) {
       return chat.groupName || 'Unnamed Group';
     }
+=======
+    if (chat.isGroupChat) return chat.groupName || 'Group';
+>>>>>>> 453b2acfea5f9fb389bedf63bc4a790f25c1f2c2
     const currentUserId = localStorage.getItem('userId');
-    const otherParticipant = chat.participants?.find(p => p._id !== currentUserId);
-    return otherParticipant?.name || 'Unknown User';
+    const other = chat.participants?.find(p => p._id !== currentUserId);
+    return other?.name || 'User';
   };
 
   const getChatImage = (chat) => {
+<<<<<<< HEAD
     if (!chat) return 'https://via.placeholder.com/40';
     if (chat.isGroupChat) {
       return 'https://via.placeholder.com/40/4F46E5/FFFFFF?text=G';
@@ -231,109 +174,62 @@ const Chat = () => {
     return otherParticipant?.profilePic 
       ? `${SERVER_URL}${otherParticipant.profilePic}` 
       : 'https://via.placeholder.com/40';
+=======
+    const currentUserId = localStorage.getItem('userId');
+    const other = chat?.participants?.find(p => p._id !== currentUserId);
+    return other?.profileImage || 'https://via.placeholder.com/40';
+>>>>>>> 453b2acfea5f9fb389bedf63bc4a790f25c1f2c2
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Chat List Sidebar */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">Messages</h2>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setShowNewChatModal(true)}
-                className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-              </button>
-              <button
-                onClick={() => setShowGroupChatModal(true)}
-                className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-                title="Create Group Chat"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </button>
-              {(localStorage.getItem('userRole')?.toUpperCase() !== 'ADMIN' && localStorage.getItem('userRole')?.toUpperCase() !== 'HR') && (
-                <button
-                  onClick={createAdminChat}
-                  className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-                  title="Contact HR / Admin"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          </div>
+    <div className="flex h-screen bg-gradient-to-br from-gray-100 to-gray-200">
+
+      {/* Sidebar */}
+      <div className="w-80 bg-white/80 backdrop-blur-lg border-r shadow-lg flex flex-col">
+
+        <div className="p-4 border-b">
+          <h2 className="text-2xl font-bold text-gray-900">Messages</h2>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
-          {chats.map((chat) => (
+        <div className="flex-1 overflow-y-auto scroll-smooth">
+          {chats.map(chat => (
             <div
               key={chat._id}
               onClick={() => setSelectedChat(chat)}
-              className={`flex items-center p-4 hover:bg-gray-50 cursor-pointer border-b border-gray-100 ${selectedChat?._id === chat._id ? 'bg-blue-50' : ''
-                }`}
+              className={`flex items-center p-4 mx-2 my-1 rounded-xl cursor-pointer transition
+              ${selectedChat?._id === chat._id 
+                ? 'bg-blue-100 shadow scale-[1.02]' 
+                : 'hover:bg-gray-100 hover:scale-[1.01]'}`}
             >
-              <img
-                src={getChatImage(chat)}
-                alt={getChatName(chat)}
-                className="w-12 h-12 rounded-full mr-3"
-              />
+              <img src={getChatImage(chat)} className="w-12 h-12 rounded-full mr-3 shadow" />
               <div className="flex-1">
-                <div className="flex justify-between items-start">
-                  <h3 className="font-semibold text-gray-800">{getChatName(chat)}</h3>
-                  {chat.lastMessage?.timestamp && !isNaN(new Date(chat.lastMessage.timestamp)) && (
-                    <span className="text-xs text-gray-500">
-                      {format(new Date(chat.lastMessage.timestamp), 'HH:mm')}
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-gray-600 truncate">
-                  {chat.lastMessage ? chat.lastMessage.content : 'No messages yet'}
-                </p>
+                <h3 className="font-semibold text-gray-800">{getChatName(chat)}</h3>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Chat Area */}
+      {/* Chat */}
       <div className="flex-1 flex flex-col">
+
         {selectedChat ? (
           <>
-            {/* Chat Header */}
-            <div className="bg-white border-b border-gray-200 p-4">
-              <div className="flex items-center">
-                <img
-                  src={getChatImage(selectedChat)}
-                  alt={getChatName(selectedChat)}
-                  className="w-10 h-10 rounded-full mr-3"
-                />
-                <div>
-                  <h3 className="font-semibold text-gray-800">{getChatName(selectedChat)}</h3>
-                  {typingUsers.length > 0 && (
-                    <p className="text-sm text-gray-500">
-                      {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
-                    </p>
-                  )}
-                </div>
-              </div>
+            {/* Header */}
+            <div className="bg-white/80 backdrop-blur-lg border-b p-4 shadow-sm">
+              <h3 className="font-semibold text-gray-900">{getChatName(selectedChat)}</h3>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messages.map((message, index) => (
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
+              {messages.map((msg, i) => (
                 <div
-                  key={index}
-                  className={`flex ${(message.sender?._id || message.sender) === localStorage.getItem('userId') ? 'justify-end' : 'justify-start'}`}
+                  key={i}
+                  className={`flex ${(msg.sender?._id || msg.sender) === localStorage.getItem('userId')
+                    ? 'justify-end'
+                    : 'justify-start'}`}
                 >
+<<<<<<< HEAD
                   <div className={`flex items-end space-x-2 ${(message.sender?._id || message.sender) === localStorage.getItem('userId') ? 'flex-row-reverse space-x-reverse' : 'flex-row'}`}>
                     <img 
                       src={message.sender?.profilePic ? `${SERVER_URL}${message.sender.profilePic}` : 'https://via.placeholder.com/32'} 
@@ -354,49 +250,46 @@ const Chat = () => {
                         </p>
                       )}
                     </div>
+=======
+                  <div
+                    className={`px-4 py-3 max-w-md rounded-2xl shadow-sm
+                    ${(msg.sender?._id || msg.sender) === localStorage.getItem('userId')
+                      ? 'bg-blue-500 text-white rounded-br-none'
+                      : 'bg-white border rounded-bl-none'}`}
+                  >
+                    {msg.content}
+>>>>>>> 453b2acfea5f9fb389bedf63bc4a790f25c1f2c2
                   </div>
                 </div>
               ))}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Message Input */}
-            <div className="bg-white border-t border-gray-200 p-4">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => {
-                    setNewMessage(e.target.value);
-                    handleTyping();
-                  }}
-                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                  placeholder="Type a message..."
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                />
-                <button
-                  onClick={sendMessage}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                >
-                  Send
-                </button>
-              </div>
+            {/* Input */}
+            <div className="bg-white/80 backdrop-blur-lg border-t p-4 flex gap-2">
+              <input
+                value={newMessage}
+                onChange={(e) => { setNewMessage(e.target.value); handleTyping(); }}
+                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                className="flex-1 px-5 py-3 rounded-full border focus:ring-2 focus:ring-blue-400"
+                placeholder="Type a message..."
+              />
+              <button
+                onClick={sendMessage}
+                className="px-5 py-3 bg-blue-500 text-white rounded-full hover:scale-105 transition"
+              >
+                Send
+              </button>
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-24 h-24 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
-                <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">Select a chat to start messaging</h3>
-              <p className="text-gray-500">Choose from your existing chats or create a new one</p>
-            </div>
+          <div className="flex-1 flex items-center justify-center text-gray-500">
+            Select a chat
           </div>
         )}
+
       </div>
+<<<<<<< HEAD
 
       {/* New Chat Modal */}
       {showNewChatModal && (
@@ -487,6 +380,8 @@ const Chat = () => {
           </div>
         </div>
       )}
+=======
+>>>>>>> 453b2acfea5f9fb389bedf63bc4a790f25c1f2c2
     </div>
   );
 };
