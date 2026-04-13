@@ -39,15 +39,16 @@ export default function EmployeeLeaves() {
   const today = new Date().toISOString().split("T")[0];
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+    <div className="min-h-screen bg-gray-50 px-4 py-6 sm:px-6">
+    <div className="max-w-7xl mx-auto space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Leaves</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">My Leaves</h1>
           <p className="text-sm text-gray-500 mt-1">Manage your time off and view leave balances.</p>
         </div>
         <button 
           onClick={() => setShowApply(true)}
-          className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition shadow-sm font-medium"
+          className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-all duration-200 shadow-sm font-medium"
         >
           + Request Leave
         </button>
@@ -192,6 +193,7 @@ export default function EmployeeLeaves() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }
