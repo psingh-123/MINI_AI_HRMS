@@ -375,6 +375,7 @@ function Navbar() {
   const navigate = useNavigate();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [user, setUser] = useState(null);
+  const [profileImageFailed, setProfileImageFailed] = useState(false);
   const dropdownRef = useRef(null);
 
   const token = localStorage.getItem("employeeToken");
@@ -444,6 +445,10 @@ function Navbar() {
       : `${baseURL}${profilePath.startsWith("/") ? "" : "/"}${profilePath}`)
     : null;
 
+  useEffect(() => {
+    setProfileImageFailed(false);
+  }, [profileSrc]);
+
   return (
     <>
       <style>{styles}</style>
@@ -501,11 +506,12 @@ function Navbar() {
                 aria-expanded={showProfileMenu}
               >
                 <div className="nb-avatar-wrap">
-                  {profileSrc ? (
+                  {profileSrc && !profileImageFailed ? (
                     <img
                       src={profileSrc}
                       alt={displayName}
                       className="nb-avatar-img"
+                      onError={() => setProfileImageFailed(true)}
                     />
                   ) : (
                     <div className="nb-avatar-initials">{initial}</div>
