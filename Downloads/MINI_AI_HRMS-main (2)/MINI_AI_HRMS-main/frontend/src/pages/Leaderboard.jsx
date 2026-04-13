@@ -130,9 +130,10 @@ const Leaderboard = () => {
         )}
 
         {/* Full Table */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Rank</th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Employee</th>
@@ -143,13 +144,13 @@ const Leaderboard = () => {
                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">HR Rating (15%)</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-slate-100">
+            <tbody className="bg-white divide-y divide-gray-100">
               {loading ? (
                 <tr><td colSpan="7" className="text-center p-8 text-slate-500 font-medium">Running Matrix calculations...</td></tr>
               ) : leaderboard.length === 0 ? (
                 <tr><td colSpan="7" className="text-center p-8 text-slate-500 font-medium">No performance data found. Admins must hit Recalculate Engine first.</td></tr>
               ) : leaderboard.map(entry => (
-                <tr key={entry._id} className="hover:bg-slate-50 transition">
+                <tr key={entry._id} className="hover:bg-gray-50 transition-all duration-200">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="font-black text-slate-400 text-lg">#{entry.rank}</span>
                   </td>
@@ -187,6 +188,7 @@ const Leaderboard = () => {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
 
       </div>
