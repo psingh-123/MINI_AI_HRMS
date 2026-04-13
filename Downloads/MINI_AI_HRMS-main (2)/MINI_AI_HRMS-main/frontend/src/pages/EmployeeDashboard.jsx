@@ -11,6 +11,7 @@ function EmployeeDashboard() {
   const [greeting, setGreeting] = useState("");
   const [wallet, setWallet] = useState(null);
   const [leaveSummary, setLeaveSummary] = useState(null);
+  const [myPerformance, setMyPerformance] = useState(null);
 
   const connectWallet = async () => {
     if (!window.ethereum) {
@@ -48,7 +49,7 @@ function EmployeeDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      await Promise.all([fetchTasks(), fetchProductivity(), fetchLeaves()]);
+      await Promise.all([fetchTasks(), fetchProductivity(), fetchLeaves(), fetchPerformance()]);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
@@ -62,6 +63,17 @@ function EmployeeDashboard() {
       setLeaveSummary(res.data.summary);
     } catch (error) {
       console.log("Could not load leave summary");
+    }
+  };
+
+  const fetchPerformance = async () => {
+    try {
+      const mn = new Date().getMonth() + 1;
+      const yr = new Date().getFullYear();
+      const res = await API.get(`/performance/my?month=${mn}&year=${yr}`, config);
+      setMyPerformance(res.data);
+    } catch (error) {
+      console.log("Performance not yet generated for this month");
     }
   };
 
@@ -280,6 +292,32 @@ function EmployeeDashboard() {
               </div>
             </div>
           </div>
+
+          {/* Performance Stats */}
+          {myPerformance && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                    My Rating
+                  </p>
+                  <p className="text-3xl font-bold text-indigo-600 mt-2">
+                    {myPerformance.record?.finalScore?.toFixed(0)} <span className="text-sm text-slate-400">pts</span>
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Global Rank: <span className="text-emerald-500 font-bold">#{myPerformance.rank}</span>
+                  </p>
+                </div>
+                <div className="bg-indigo-100 p-3 rounded-xl cursor-pointer hover:bg-indigo-200 transition">
+                  <Link to="/employee/leaderboard">
+                    <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Leaves Stats */}
           {leaveSummary && (

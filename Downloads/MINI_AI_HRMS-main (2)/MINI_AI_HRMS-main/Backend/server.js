@@ -18,7 +18,7 @@ const aiRoutes = require("./routes/aiRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const attendanceRoutes = require("./routes/attendanceRoutes");
-const leaderboardRoutes = require("./routes/leaderboardRoutes");
+const performanceRoutes = require("./routes/performanceRoutes");
 const meetingRoutes = require("./routes/meetingRoutes");
 
 // Middleware
@@ -58,7 +58,7 @@ app.use("/api/org", orgRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/attendance", attendanceRoutes);
-app.use("/api/leaderboard", leaderboardRoutes);
+app.use("/api/performance", performanceRoutes);
 app.use("/api/meetings", meetingRoutes);
 app.use("/api/groups", require("./routes/groupRoutes"));
 app.use("/api/leaves", require("./routes/leaveRoutes"));

@@ -1,499 +1,218 @@
 import React, { useState, useEffect } from 'react';
 import API from '../services/api';
-import { format } from 'date-fns';
 
 const Leaderboard = () => {
   const [leaderboard, setLeaderboard] = useState([]);
-  const [myPosition, setMyPosition] = useState(null);
-  const [topPerformers, setTopPerformers] = useState([]);
-  const [period, setPeriod] = useState('monthly');
   const [isAdmin, setIsAdmin] = useState(false);
-  const [showCalculateModal, setShowCalculateModal] = useState(false);
-  const [showRewardModal, setShowRewardModal] = useState(false);
-  const [employees, setEmployees] = useState([]);
-  const [selectedEmployee, setSelectedEmployee] = useState('');
-  const [rewardType, setRewardType] = useState('');
-  const [rewardDescription, setRewardDescription] = useState('');
-  const [rewardPoints, setRewardPoints] = useState('');
-  const [calculateData, setCalculateData] = useState({
-    period: 'monthly',
-    startDate: '',
-    endDate: ''
-  });
+  
+  const [month, setMonth] = useState(new Date().getMonth() + 1);
+  const [year, setYear] = useState(new Date().getFullYear());
+  
+  const [loading, setLoading] = useState(true);
 
-  // Token and API_URL are handled by the API service
+  // Modals
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [selectedPerfId, setSelectedPerfId] = useState(null);
+  const [ratingVal, setRatingVal] = useState(3);
 
   useEffect(() => {
     checkAdminStatus();
     fetchLeaderboard();
-    fetchMyPosition();
-    if (isAdmin) {
-      fetchEmployees();
-    }
-  }, [period]);
+  }, [month, year]);
 
   const checkAdminStatus = () => {
-    const userRole = localStorage.getItem('userRole');
-    setIsAdmin(userRole === 'admin');
+    const userRole = localStorage.getItem('userRole')?.toLowerCase();
+    setIsAdmin(userRole === 'admin' || userRole === 'hr');
   };
 
   const fetchLeaderboard = async () => {
     try {
-      const response = await API.get(`/leaderboard?period=${period}`);
-      setLeaderboard(response.data.leaderboard);
+      setLoading(true);
+      const res = await API.get(`/performance/leaderboard?month=${month}&year=${year}`);
+      setLeaderboard(res.data);
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
-    }
-  };
-
-  const fetchMyPosition = async () => {
-    try {
-      const response = await API.get(`/leaderboard/my-position?period=${period}`);
-      setMyPosition(response.data.myEntry);
-      setTopPerformers(response.data.topPerformers);
-    } catch (error) {
-      console.error('Error fetching my position:', error);
-    }
-  };
-
-  const fetchEmployees = async () => {
-    try {
-      const response = await API.get('/employees');
-      setEmployees(response.data);
-    } catch (error) {
-      console.error('Error fetching employees:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const calculateLeaderboard = async () => {
     try {
-      await API.post('/leaderboard/calculate', calculateData);
-      
-      setShowCalculateModal(false);
-      setCalculateData({
-        period: 'monthly',
-        startDate: '',
-        endDate: ''
-      });
+      if (!window.confirm("Run performance calculator engine? This evaluates all tasks, attendance, and leaves for the specified month.")) return;
+      setLoading(true);
+      await API.post('/performance/generate', { month, year });
+      alert("Scores Recalculated Successfully!");
       fetchLeaderboard();
-      fetchMyPosition();
     } catch (error) {
-      console.error('Error calculating leaderboard:', error);
+      const errorMsg = error.response?.data?.message || error.message || "Error calculating scores";
+      alert(`Performance calculation failed: ${errorMsg}`);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const awardReward = async () => {
+  const saveRating = async () => {
     try {
-      const data = {
-        employeeId: selectedEmployee,
-        type: rewardType,
-        description: rewardDescription,
-        points: parseInt(rewardPoints)
-      };
-
-      await API.post('/leaderboard/award-reward', data);
-
-      setShowRewardModal(false);
-      setSelectedEmployee('');
-      setRewardType('');
-      setRewardDescription('');
-      setRewardPoints('');
+      await API.patch('/performance/rating', { perfId: selectedPerfId, rating: ratingVal });
+      setShowRatingModal(false);
       fetchLeaderboard();
-      fetchMyPosition();
     } catch (error) {
-      console.error('Error awarding reward:', error);
+      alert("Error updating rating");
     }
   };
 
   const getRankBadge = (rank) => {
     switch (rank) {
-      case 1:
-        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-      case 2:
-        return 'bg-gray-100 text-gray-800 border-gray-300';
-      case 3:
-        return 'bg-orange-100 text-orange-800 border-orange-300';
-      default:
-        return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 1: return 'bg-yellow-100 text-yellow-800 border-yellow-300 shadow-md ring-2 ring-yellow-400 scale-110';
+      case 2: return 'bg-gray-200 text-gray-800 border-gray-400 shadow ring-2 ring-gray-300 scale-105';
+      case 3: return 'bg-orange-100 text-orange-800 border-orange-300 shadow ring-2 ring-orange-300 scale-105';
+      default: return 'bg-slate-50 text-slate-700 border-slate-200';
     }
   };
 
-  const getRankIcon = (rank) => {
-    switch (rank) {
-      case 1:
-        return '🥇';
-      case 2:
-        return '🥈';
-      case 3:
-        return '🥉';
-      default:
-        return `#${rank}`;
-    }
-  };
+  const top3 = leaderboard.slice(0, 3);
+  const podiumOrder = top3.length === 3 ? [top3[1], top3[0], top3[2]] : top3; // Order 2, 1, 3 for visual podium
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Performance Leaderboard</h1>
-          <div className="flex space-x-3">
-            <select
-              value={period}
-              onChange={(e) => setPeriod(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-            >
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="quarterly">Quarterly</option>
-              <option value="yearly">Yearly</option>
-            </select>
-            {isAdmin && (
-              <>
-                <button
-                  onClick={() => setShowCalculateModal(true)}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                >
-                  Calculate Scores
-                </button>
-                <button
-                  onClick={() => setShowRewardModal(true)}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-                >
-                  Award Reward
-                </button>
-              </>
-            )}
+    <div className="min-h-screen bg-slate-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        
+        {/* Header Filters */}
+        <div className="flex justify-between items-end bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Performance Leaderboard</h1>
+            <p className="text-slate-500 mt-1">Metrics scaled across Attendance (40%), Tasks (30%), Leaves (15%), HR Rating (15%).</p>
           </div>
-        </div>
-
-        {/* My Position Card */}
-        {myPosition && (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">My Performance</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="text-center">
-                <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full border-2 ${getRankBadge(myPosition.metrics.rank)}`}>
-                  <span className="text-2xl font-bold">{getRankIcon(myPosition.metrics.rank)}</span>
-                </div>
-                <p className="text-sm text-gray-500 mt-2">Current Rank</p>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600">{myPosition.metrics.totalScore}</div>
-                <p className="text-sm text-gray-500 mt-2">Total Score</p>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-green-600">{myPosition.metrics.attendanceScore}</div>
-                <p className="text-sm text-gray-500 mt-2">Attendance Score</p>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600">{myPosition.metrics.taskCompletionScore}</div>
-                <p className="text-sm text-gray-500 mt-2">Task Score</p>
-              </div>
-            </div>
-
-            {/* Achievements */}
-            {myPosition.achievements && myPosition.achievements.length > 0 && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900 mb-3">Recent Achievements</h3>
-                <div className="flex flex-wrap gap-2">
-                  {myPosition.achievements.map((achievement, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium"
-                    >
-                      {achievement.type.replace('_', ' ').toUpperCase()} (+{achievement.points} pts)
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Rewards */}
-            {myPosition.rewards && myPosition.rewards.length > 0 && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900 mb-3">Rewards</h3>
-                <div className="space-y-2">
-                  {myPosition.rewards.map((reward, index) => (
-                    <div key={index} className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                      <div>
-                        <p className="font-medium text-purple-900">{reward.description}</p>
-                        <p className="text-sm text-purple-700">{format(new Date(reward.date), 'MMM dd, yyyy')}</p>
-                      </div>
-                      <span className="px-2 py-1 bg-purple-200 text-purple-800 rounded-full text-sm font-medium">
-                        +{reward.points} pts
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Top Performers */}
-        {topPerformers && topPerformers.length > 0 && (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Top Performers</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {topPerformers.slice(0, 3).map((performer) => (
-                <div key={performer._id} className="text-center p-4 bg-gray-50 rounded-lg">
-                  <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full border-2 ${getRankBadge(performer.metrics.rank)}`}>
-                    <span className="text-lg font-bold">{getRankIcon(performer.metrics.rank)}</span>
-                  </div>
-                  <img
-                    src={performer.employee?.profileImage || 'https://via.placeholder.com/60'}
-                    alt={performer.employee?.name}
-                    className="w-16 h-16 rounded-full mx-auto mt-3 mb-2"
-                  />
-                  <h3 className="font-medium text-gray-900">{performer.employee?.name}</h3>
-                  <p className="text-2xl font-bold text-blue-600 mt-1">{performer.metrics.totalScore} pts</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Leaderboard Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-800">
-              {period.charAt(0).toUpperCase() + period.slice(1)} Leaderboard
-            </h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Rank
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Employee
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total Score
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Attendance Score
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Task Score
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Present Days
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Completed Tasks
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {leaderboard.map((entry) => (
-                  <tr 
-                    key={entry._id}
-                    className={myPosition && entry.employee._id === myPosition.employee._id ? 'bg-blue-50' : ''}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className={`inline-flex items-center justify-center w-10 h-10 rounded-full border-2 ${getRankBadge(entry.metrics.rank)}`}>
-                        <span className="font-bold">{getRankIcon(entry.metrics.rank)}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <img
-                          src={entry.employee?.profileImage || 'https://via.placeholder.com/40'}
-                          alt={entry.employee?.name}
-                          className="w-10 h-10 rounded-full mr-3"
-                        />
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {entry.employee?.name}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {entry.employee?.email}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-lg font-bold text-blue-600">{entry.metrics.totalScore}</div>
-                      {entry.metrics.previousRank > 0 && entry.metrics.rank < entry.metrics.previousRank && (
-                        <span className="text-xs text-green-600">↑ {entry.metrics.previousRank - entry.metrics.rank}</span>
-                      )}
-                      {entry.metrics.previousRank > 0 && entry.metrics.rank > entry.metrics.previousRank && (
-                        <span className="text-xs text-red-600">↓ {entry.metrics.rank - entry.metrics.previousRank}</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {entry.metrics.attendanceScore}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {entry.metrics.taskCompletionScore}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {entry.breakdown.presentDays}/{entry.breakdown.totalDays}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {entry.breakdown.completedTasks}/{entry.breakdown.totalTasks}
-                    </td>
-                  </tr>
+          <div className="flex space-x-3 items-center">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Month</label>
+              <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm font-semibold">
+                {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => (
+                  <option key={m} value={m}>{new Date(2000, m - 1, 1).toLocaleString('default', { month: 'long' })}</option>
                 ))}
-              </tbody>
-            </table>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Year</label>
+              <input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-24 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm font-semibold" />
+            </div>
+            {isAdmin && (
+               <button onClick={calculateLeaderboard} className="ml-4 mt-5 px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-bold shadow-sm transition">
+                ⚡ Recalculate Engine
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Calculate Modal */}
-        {showCalculateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 className="text-lg font-semibold mb-4">Calculate Leaderboard Scores</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Period
-                  </label>
-                  <select
-                    value={calculateData.period}
-                    onChange={(e) => setCalculateData({...calculateData, period: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="daily">Daily</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly">Monthly</option>
-                    <option value="quarterly">Quarterly</option>
-                    <option value="yearly">Yearly</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    value={calculateData.startDate}
-                    onChange={(e) => setCalculateData({...calculateData, startDate: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    End Date
-                  </label>
-                  <input
-                    type="date"
-                    value={calculateData.endDate}
-                    onChange={(e) => setCalculateData({...calculateData, endDate: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex space-x-2 mt-6">
-                <button
-                  onClick={calculateLeaderboard}
-                  disabled={!calculateData.startDate || !calculateData.endDate}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300"
-                >
-                  Calculate
-                </button>
-                <button
-                  onClick={() => setShowCalculateModal(false)}
-                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
+        {/* Podium Highlight */}
+        {!loading && top3.length > 0 && (
+          <div className="flex justify-center items-end h-64 space-x-4 mb-12">
+            {podiumOrder.map((performer) => {
+               const isFirst = performer.rank === 1;
+               return (
+                 <div key={performer._id} className={`flex flex-col items-center transition-all ${isFirst ? 'z-10 -mt-8' : 'opacity-90'}`}>
+                   <div className="relative mb-4">
+                     <span className={`absolute -top-6 -right-4 text-4xl ${isFirst?'block':'hidden'}`}>👑</span>
+                     <div className={`flex items-center justify-center w-20 h-20 rounded-full border-4 font-black text-2xl ${getRankBadge(performer.rank)}`}>
+                        {performer.rank === 1 ? '1st' : performer.rank === 2 ? '2nd' : '3rd'}
+                     </div>
+                   </div>
+                   <div className={`bg-white rounded-t-xl shadow-lg border border-slate-200 w-44 flex flex-col items-center justify-start p-4 ${isFirst ? 'h-48' : performer.rank === 2 ? 'h-40 bg-slate-50' : 'h-32 bg-slate-100'}`}>
+                     <span className="font-bold text-slate-900 text-center leading-tight truncate w-full">{performer.employeeId?.name || "Unknown"}</span>
+                     <span className={`font-black mt-2 ${isFirst ? 'text-indigo-600 text-3xl' : 'text-slate-700 text-xl'}`}>{performer.finalScore.toFixed(0)}</span>
+                     <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Points</span>
+                   </div>
+                 </div>
+               )
+            })}
           </div>
         )}
 
-        {/* Reward Modal */}
-        {showRewardModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 className="text-lg font-semibold mb-4">Award Reward</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Employee
-                  </label>
-                  <select
-                    value={selectedEmployee}
-                    onChange={(e) => setSelectedEmployee(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="">Select Employee</option>
-                    {employees.map((employee) => (
-                      <option key={employee._id} value={employee._id}>
-                        {employee.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+        {/* Full Table */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <table className="min-w-full divide-y divide-slate-200">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Rank</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Employee</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Final Score</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Attendance (40%)</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Tasks (30%)</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Leaves (15%)</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">HR Rating (15%)</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-slate-100">
+              {loading ? (
+                <tr><td colSpan="7" className="text-center p-8 text-slate-500 font-medium">Running Matrix calculations...</td></tr>
+              ) : leaderboard.length === 0 ? (
+                <tr><td colSpan="7" className="text-center p-8 text-slate-500 font-medium">No performance data found. Admins must hit Recalculate Engine first.</td></tr>
+              ) : leaderboard.map(entry => (
+                <tr key={entry._id} className="hover:bg-slate-50 transition">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="font-black text-slate-400 text-lg">#{entry.rank}</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <p className="font-bold text-slate-900">{entry.employeeId?.name || "Unknown"}</p>
+                    <div className="flex gap-1 mt-1">
+                      {entry.bonusesApplied.length > 0 && <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] rounded font-bold uppercase" title={entry.bonusesApplied.join(', ')}>Bonuses Applied</span>}
+                      {entry.penaltiesApplied.length > 0 && <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-[10px] rounded font-bold uppercase" title={entry.penaltiesApplied.join(', ')}>Penalties Applied</span>}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="text-xl font-black text-indigo-600">{entry.finalScore.toFixed(0)}</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                     <span className="text-sm font-semibold">{entry.attendanceScore.toFixed(0)}</span>
+                     <span className="text-xs text-slate-400 block">{entry.breakdown.presentDays}/{entry.breakdown.workingDays} P</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                     <span className="text-sm font-semibold">{entry.taskScore.toFixed(0)}</span>
+                     <span className="text-xs text-slate-400 block">{entry.breakdown.completedTasks}/{entry.breakdown.totalTasks} Done</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                     <span className="text-sm font-semibold">{entry.leaveScore.toFixed(0)}</span>
+                     <span className="text-xs text-slate-400 block">LWP: {entry.breakdown.lwpLeaves}</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-black text-amber-500">★ {entry.hrRating}</span>
+                      {isAdmin && (
+                        <button onClick={() => { setSelectedPerfId(entry._id); setRatingVal(entry.hrRating); setShowRatingModal(true); }} className="text-xs text-indigo-600 hover:underline font-semibold">Edit</button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Reward Type
-                  </label>
-                  <input
-                    type="text"
-                    value={rewardType}
-                    onChange={(e) => setRewardType(e.target.value)}
-                    placeholder="e.g., Employee of the Month"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={rewardDescription}
-                    onChange={(e) => setRewardDescription(e.target.value)}
-                    rows={3}
-                    placeholder="Describe the achievement..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Points
-                  </label>
-                  <input
-                    type="number"
-                    value={rewardPoints}
-                    onChange={(e) => setRewardPoints(e.target.value)}
-                    placeholder="Enter points"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex space-x-2 mt-6">
-                <button
-                  onClick={awardReward}
-                  disabled={!selectedEmployee || !rewardType || !rewardDescription || !rewardPoints}
-                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300"
-                >
-                  Award Reward
-                </button>
-                <button
-                  onClick={() => setShowRewardModal(false)}
-                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Admin HR Rating Modal */}
+      {showRatingModal && (
+         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+             <h3 className="text-lg font-black text-slate-900 mb-2">Adjust HR Rating</h3>
+             <p className="text-xs text-slate-500 mb-6">Ratings account for 15% of the overall final score trajectory.</p>
+             <div className="space-y-4">
+               <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Star Rating (1-5)</label>
+                  <input type="range" min="1" max="5" step="1" value={ratingVal} onChange={e => setRatingVal(Number(e.target.value))} className="w-full accent-indigo-600" />
+                  <div className="text-center mt-2 text-3xl font-black text-amber-500">
+                    {'★'.repeat(ratingVal)}{'☆'.repeat(5-ratingVal)}
+                  </div>
+               </div>
+               <div className="flex space-x-3 pt-4 border-t border-slate-100">
+                 <button onClick={() => setShowRatingModal(false)} className="flex-1 py-2 bg-slate-100 font-bold text-slate-600 rounded-lg hover:bg-slate-200 transition">Cancel</button>
+                 <button onClick={saveRating} className="flex-1 py-2 bg-indigo-600 font-bold text-white rounded-lg hover:bg-indigo-700 transition shadow-sm">Save Map</button>
+               </div>
+             </div>
+           </div>
+         </div>
+      )}
     </div>
   );
 };
