@@ -573,20 +573,20 @@ export default function QRAttendance() {
   const role = (localStorage.getItem('userRole') || '').toLowerCase();
   const isHR = role === 'admin' || role === 'hr';
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg,#f8fafc,#eff6ff)', padding: 24 }}>
-      <div style={{ maxWidth: 960, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 28 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div className="min-h-screen bg-gray-50 px-4 py-6 sm:px-6">
+      <div className="max-w-5xl mx-auto">
+        <div className="flex items-center gap-4 mb-6 bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+          <div className="w-11 h-11 rounded-xl bg-indigo-500 flex items-center justify-center flex-shrink-0 shadow-sm">
             <svg width="22" height="22" fill="none" stroke="white" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 3.5a.5.5 0 11-1 0 .5.5 0 011 0z" />
             </svg>
           </div>
           <div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1e293b', margin: 0 }}>
+            <h1 className="text-2xl font-semibold text-gray-900">
               {isHR ? 'QR Attendance Panel' : 'Mark My Attendance'}
             </h1>
-            <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
+            <p className="text-sm text-gray-500 mt-1">
               {isHR ? 'Generate QR · view daily attendance' : 'Scan HR QR or tap to mark attendance with location check'}
             </p>
           </div>
