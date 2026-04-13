@@ -602,7 +602,7 @@ export default function QRAttendance() {
 // ═══════════════════════════════════════════════════════
 const hrCSS = `
 .hr-root { display:flex; flex-direction:column; gap:24px; }
-.qr-card { background:white; border-radius:20px; box-shadow:0 4px 24px rgba(0,0,0,.07); padding:28px; border:1px solid #f1f5f9; }
+.qr-card { background:white; border-radius:16px; box-shadow:0 1px 3px rgba(15,23,42,.08); padding:24px; border:1px solid #f3f4f6; }
 .qr-card-hdr { display:flex; align-items:center; gap:12px; margin-bottom:24px; }
 .qr-icon-box { width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg,#6366f1,#8b5cf6); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .qr-card-ttl { font-size:16px; font-weight:700; color:#1e293b; margin:0 0 2px; }
@@ -626,7 +626,7 @@ const hrCSS = `
 .spin { width:13px; height:13px; border:2px solid rgba(255,255,255,.35); border-top-color:white; border-radius:50%; animation:spin .7s linear infinite; display:inline-block; }
 @keyframes spin { to { transform:rotate(360deg); } }
 /* date panel */
-.date-panel { background:white; border-radius:20px; box-shadow:0 4px 24px rgba(0,0,0,.07); padding:24px; border:1px solid #f1f5f9; }
+.date-panel { background:white; border-radius:16px; box-shadow:0 1px 3px rgba(15,23,42,.08); padding:24px; border:1px solid #f3f4f6; }
 .panel-ttl { display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700; color:#1e293b; margin:0 0 16px; }
 .date-item { border-radius:12px; overflow:hidden; border:1px solid #f1f5f9; margin-bottom:8px; }
 .date-tog { width:100%; display:flex; align-items:center; gap:8px; padding:13px 16px; background:#f8fafc; border:none; cursor:pointer; font-size:13px; font-weight:500; color:#475569; text-align:left; transition:background .15s; }
@@ -666,7 +666,7 @@ const empCSS = `
 .s-label { font-size:10px; color:rgba(255,255,255,.8); text-transform:uppercase; font-weight:700; margin:0; }
 .s-value { font-size:24px; font-weight:800; color:white; margin:0; }
 .s-time { font-size:11px; color:rgba(255,255,255,.9); margin-top:2px; }
-.live-card { background:white; border-radius:24px; box-shadow:0 4px 20px rgba(0,0,0,.05); border:1px solid #f1f5f9; overflow:hidden; }
+.live-card { background:white; border-radius:16px; box-shadow:0 1px 3px rgba(15,23,42,.08); border:1px solid #f3f4f6; overflow:hidden; }
 .live-hdr { display:flex; align-items:center; gap:12px; padding:18px 24px; background:#f8fafc; border-bottom:1px solid #f1f5f9; }
 .live-hdr-icon { width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,#6366f1,#8b5cf6); display:flex; align-items:center; justify-content:center; }
 .live-ttl { font-size:15px; font-weight:700; color:#1e293b; margin:0; }
@@ -690,7 +690,7 @@ const empCSS = `
 .cam-cancel { padding:6px 14px; border-radius:8px; border:1px solid #e2e8f0; background:#f8fafc; font-size:12px; font-weight:600; color:#ef4444; cursor:pointer; }
 .scan-box { width:100%; aspect-ratio:1/1; max-width:400px; margin:0 auto; border-radius:24px; overflow:hidden; background:black; box-shadow:0 20px 50px rgba(0,0,0,0.2); border:2px solid #f1f5f9; }
 .marked-banner { display:flex; align-items:center; gap:10px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:16px; padding:16px 20px; font-size:14px; font-weight:600; color:#166534; }
-.hist-card { background:white; border-radius:24px; padding:24px; border:1px solid #f1f5f9; }
+.hist-card { background:white; border-radius:16px; padding:24px; border:1px solid #f3f4f6; box-shadow:0 1px 3px rgba(15,23,42,.08); }
 .hist-ttl { font-size:15px; font-weight:700; color:#1e293b; margin:0 0 16px; }
 .hist-list { display:flex; flex-direction:column; gap:10px; }
 .hist-row { display:flex; align-items:center; gap:12px; padding:14px; border-radius:16px; background:#f8fafc; border:1px solid #f1f5f9; }
