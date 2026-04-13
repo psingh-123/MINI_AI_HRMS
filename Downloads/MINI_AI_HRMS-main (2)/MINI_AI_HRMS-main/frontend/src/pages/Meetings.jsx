@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import API from '../services/api';
 
-/* ─────────────────────────────────────────────────────────
-   Utilities
-───────────────────────────────────────────────────────── */
+//utilities
 /**
  * Compute seconds remaining using backend-supplied jitsiExpiresAt.
  * Falls back to createdAt + jitsiDuration*60 if available.
@@ -23,9 +21,7 @@ function fmtTime(iso) {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-/* ─────────────────────────────────────────────────────────
-   Duration options
-───────────────────────────────────────────────────────── */
+//duration
 const DURATION_OPTIONS = [
   { label: '15 minutes', value: 15 },
   { label: '30 minutes', value: 30 },
@@ -35,9 +31,7 @@ const DURATION_OPTIONS = [
   { label: '2 hours',    value: 120 },
 ];
 
-/* ─────────────────────────────────────────────────────────
-   ADMIN PANEL
-───────────────────────────────────────────────────────── */
+//admin view
 function AdminPanel() {
   const [meeting, setMeeting]       = useState(null);
   const [secs, setSecs]             = useState(0);
@@ -307,7 +301,7 @@ function AdminPanel() {
                   {copied ? '✓ Copied!' : '📋 Copy Link'}
                 </button>
                 <button id="open-meeting-btn" onClick={() => window.open(meeting.jitsiLink, '_blank')} style={{ ...S.actionBtn, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: 'white', borderColor: 'transparent' }}>
-                  🚀 Open Jitsi
+                  🚀 Open Meeting
                 </button>
               </div>
             </div>
@@ -470,9 +464,7 @@ function EmployeePanel() {
   );
 }
 
-/* ─────────────────────────────────────────────────────────
-   Small SVG icons
-───────────────────────────────────────────────────────── */
+//svg icons
 function CamIcon({ size = 20 }) {
   return (
     <svg width={size} height={size} fill="none" stroke="white" viewBox="0 0 24 24">
@@ -491,9 +483,7 @@ function PlayIcon() {
   );
 }
 
-/* ─────────────────────────────────────────────────────────
-   Styles
-───────────────────────────────────────────────────────── */
+//style
 const S = {
   panel: { background: 'white', borderRadius: 24, boxShadow: '0 4px 24px rgba(0,0,0,0.07)', border: '1px solid #f1f5f9', overflow: 'hidden', maxWidth: 660, margin: '0 auto' },
   panelHdr: { padding: '22px 28px', borderBottom: '1px solid #f1f5f9', background: 'linear-gradient(135deg,#f8fafc,#eff6ff)', display: 'flex', alignItems: 'center', gap: 16 },
@@ -532,9 +522,7 @@ const S = {
   dot: { width: 12, height: 12, borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', animation: 'bounce-dot 1.4s ease-in-out infinite' },
 };
 
-/* ─────────────────────────────────────────────────────────
-   ROOT
-───────────────────────────────────────────────────────── */
+//main function
 export default function Meetings() {
   const role = (localStorage.getItem('userRole') || '').toLowerCase();
   const isAdmin = role === 'admin';
