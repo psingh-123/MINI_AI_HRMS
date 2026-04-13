@@ -286,6 +286,21 @@ const Chat = () => {
     );
   };
 
+  const getMessageSender = (message) => {
+    const senderId = message?.sender?._id || message?.sender;
+    if (!senderId) return null;
+    if (message?.sender && typeof message.sender === 'object') return message.sender;
+    return selectedChat?.participants?.find(p => p._id === senderId) || null;
+  };
+
+  const getMessageSenderName = (message) => {
+    return getMessageSender(message)?.name || getChatName(selectedChat);
+  };
+
+  const getMessageSenderImage = (message) => {
+    return resolveProfileImageUrl(getMessageSender(message)?.profileImage);
+  };
+
   return (
     <div className="flex h-screen bg-slate-100">
       {/* Chat List Sidebar */}
@@ -416,8 +431,8 @@ const Chat = () => {
                   >
                     {!isMine && (
                       <Avatar
-                        src={getChatImage(selectedChat)}
-                        name={getChatName(selectedChat)}
+                        src={getMessageSenderImage(message)}
+                        name={getMessageSenderName(message)}
                         alt="sender"
                         className="w-7 h-7 rounded-full object-cover flex-shrink-0 mb-1 shadow-sm"
                         fallbackClassName="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-[10px] font-semibold flex-shrink-0 mb-1 shadow-sm select-none"
