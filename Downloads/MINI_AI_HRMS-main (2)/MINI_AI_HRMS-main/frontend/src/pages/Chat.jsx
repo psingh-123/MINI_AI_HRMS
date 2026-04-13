@@ -247,6 +247,15 @@ const Chat = () => {
     return `${SERVER_ORIGIN}/${value}`;
   };
 
+  const getInitials = (name) => {
+    const safe = String(name || '').trim();
+    if (!safe) return '?';
+    const parts = safe.split(/\s+/).filter(Boolean);
+    const first = parts[0]?.[0] || '?';
+    const second = parts.length > 1 ? parts[parts.length - 1]?.[0] : '';
+    return `${first}${second}`.toUpperCase();
+  };
+
   return (
     <div className="flex h-screen bg-slate-100">
       {/* Chat List Sidebar */}
