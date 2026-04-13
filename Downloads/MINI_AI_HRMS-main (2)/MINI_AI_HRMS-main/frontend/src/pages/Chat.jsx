@@ -305,7 +305,7 @@ const Chat = () => {
         src={src}
         alt={alt || name || 'avatar'}
         title={name || alt}
-        className={className}
+        className={`${className} bg-white`}
         onError={() => setFailed(true)}
       />
     );
