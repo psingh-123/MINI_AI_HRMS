@@ -13,14 +13,27 @@ const Reports = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [stats, setStats] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState(localStorage.getItem('userId') || '');
+  const [currentUserId, setCurrentUserId] = useState(() => {
+    let uid = localStorage.getItem('userId');
+    if (!uid) {
+      const token = localStorage.getItem('token') || localStorage.getItem('employeeToken');
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          uid = payload.id || payload.userId;
+        } catch (e) {}
+      }
+    }
+    return uid || '';
+  });
 
   const [formData, setFormData] = useState({
     reportedUserId: '',
     reason: '',
     description: '',
     severity: 'medium',
-    anonymous: false
+    anonymous: false,
+    evidence: []
   });
 
   const [updateData, setUpdateData] = useState({
@@ -91,6 +104,7 @@ const Reports = () => {
   const fetchStats = async () => {
     try {
       const response = await API.get('/reports/stats');
+      console.log('fetchStats success:', response.data);
       setStats(response.data);
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -120,8 +134,11 @@ const Reports = () => {
       await API.patch(`/reports/${reportId}/status`, updateData);
 
       setShowViewModal(false);
-      fetchAllReports();
-      fetchStats();
+      if (isAdmin) {
+        fetchAllReports();
+        fetchStats();
+      }
+      fetchMyReports();
     } catch (error) {
       console.error('Error updating report:', error);
     }
@@ -280,7 +297,7 @@ const Reports = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {report.reportedBy?._id === currentUserId ? 'You' : 
+                      {(report.reportedBy?._id || report.reportedBy)?.toString() === currentUserId?.toString() ? 'You' : 
                        (report.anonymous && !isAdmin ? 'Anonymous' : (report.reportedBy?.name || 'N/A'))}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -373,14 +390,44 @@ const Reports = () => {
                   </select>
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Proof Image (Optional)
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setFormData({ ...formData, evidence: [{ type: 'image', url: reader.result }] });
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                  {formData.evidence.length > 0 && (
+                    <p className="text-xs text-green-600 mt-1 flex items-center">
+                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Image attached successfully
+                    </p>
+                  )}
+                </div>
+
                 <div className="flex items-center">
                   <input
                     type="checkbox"
+                    id="anonymous-checkbox"
                     checked={formData.anonymous}
                     onChange={(e) => setFormData({ ...formData, anonymous: e.target.checked })}
                     className="mr-2"
                   />
-                  <label className="text-sm text-gray-700">File anonymously</label>
+                  <label htmlFor="anonymous-checkbox" className="text-sm text-gray-700">File anonymously</label>
                 </div>
               </div>
 
@@ -388,7 +435,7 @@ const Reports = () => {
                 <button
                   onClick={createReport}
                   disabled={!formData.reportedUserId || !formData.reason || !formData.description}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300"
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 transition-colors"
                 >
                   Submit Report
                 </button>
@@ -454,70 +501,119 @@ const Reports = () => {
                   </span>
                 </div>
 
-                {/* Only show update for the original reporter */}
-                {!isAdmin && selectedReport.reportedBy?._id === currentUserId && (
-                  <div className="border-t pt-4">
-                    <h4 className="font-medium text-gray-900 mb-3">Update Report Status</h4>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Update Status
-                        </label>
-                        <select
-                          value={updateData.status}
-                          onChange={(e) => setUpdateData({ ...updateData, status: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                        >
-                          <option value="">Select Status</option>
-                          <option value="pending">Pending</option>
-                          <option value="under_review">Under Review</option>
-                          <option value="resolved">Resolved</option>
-                          <option value="dismissed">Dismissed</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Review Notes
-                        </label>
-                        <textarea
-                          value={updateData.reviewNotes}
-                          onChange={(e) => setUpdateData({ ...updateData, reviewNotes: e.target.value })}
-                          rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                          placeholder="Add review notes..."
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Resolution
-                        </label>
-                        <textarea
-                          value={updateData.resolution}
-                          onChange={(e) => setUpdateData({ ...updateData, resolution: e.target.value })}
-                          rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                          placeholder="Describe resolution..."
-                        />
-                      </div>
-
-                      <button
-                        onClick={() => updateReportStatus(selectedReport._id)}
-                        disabled={!updateData.status}
-                        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300"
-                      >
-                        Update Report
-                      </button>
-                      <br/>
-                      <button
-                        onClick={() => window.location.href = '/chat'}
-                        className="w-full px-4 py-2 mt-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200"
-                      >
-                        Go to Chat to Discuss
-                      </button>
+                {selectedReport.evidence && selectedReport.evidence.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Attached Proof</label>
+                    <div className="border rounded-lg overflow-hidden bg-gray-50 p-2">
+                      {selectedReport.evidence.map((item, idx) => (
+                        <div key={idx}>
+                          {item.url.startsWith('data:image') ? (
+                            <img 
+                              src={item.url} 
+                              alt="Proof" 
+                              className="max-w-full h-auto rounded cursor-pointer hover:opacity-90"
+                              onClick={() => window.open(item.url, '_blank')}
+                            />
+                          ) : (
+                            <a href={item.url} target="_blank" rel="noreferrer" className="text-blue-600 underline text-sm">View Evidence {idx + 1}</a>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
+                )}
+
+                {/* Only show update for the original reporter */}
+                {!isAdmin && (
+                  (() => {
+                    const reporterId = selectedReport.reportedBy?._id || selectedReport.reportedBy;
+                    const isOwner = reporterId?.toString() === currentUserId?.toString();
+                    
+                    console.log('Ownership Check:', {
+                      reporterId,
+                      currentUserId,
+                      isOwner,
+                      isAdmin,
+                      reportedByName: selectedReport.reportedBy?.name
+                    });
+
+                    if (!isOwner) return null;
+
+                    return (
+                      <div className="border-t pt-4">
+                        <div className="flex justify-between items-center mb-3">
+                          <h4 className="font-medium text-gray-900">Update Report Status</h4>
+                          {selectedReport.status !== 'resolved' && (
+                            <button
+                              onClick={() => {
+                                setUpdateData({ status: 'resolved', reviewNotes: 'Report resolved by filer', resolution: 'Settled' });
+                                updateReportStatus(selectedReport._id);
+                              }}
+                              className="text-xs px-3 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full hover:bg-green-100 transition-colors"
+                            >
+                              Mark as Resolved
+                            </button>
+                          )}
+                        </div>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Update Status
+                            </label>
+                            <select
+                              value={updateData.status}
+                              onChange={(e) => setUpdateData({ ...updateData, status: e.target.value })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                            >
+                              <option value="">Select Status</option>
+                              <option value="resolved">Resolved</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Review Notes
+                            </label>
+                            <textarea
+                              value={updateData.reviewNotes}
+                              onChange={(e) => setUpdateData({ ...updateData, reviewNotes: e.target.value })}
+                              rows={3}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                              placeholder="Add review notes..."
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Resolution
+                            </label>
+                            <textarea
+                              value={updateData.resolution}
+                              onChange={(e) => setUpdateData({ ...updateData, resolution: e.target.value })}
+                              rows={3}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                              placeholder="Describe resolution..."
+                            />
+                          </div>
+
+                          <button
+                            onClick={() => updateReportStatus(selectedReport._id)}
+                            disabled={!updateData.status}
+                            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300"
+                          >
+                            Update Report
+                          </button>
+                          <br/>
+                          <button
+                            onClick={() => window.location.href = '/chat'}
+                            className="w-full px-4 py-2 mt-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200"
+                          >
+                            Go to Chat to Discuss
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()
                 )}
 
                 {selectedReport.reviewedBy && (

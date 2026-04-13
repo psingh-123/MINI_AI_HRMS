@@ -1,6 +1,7 @@
 const Report = require('../models/Report');
 const Employee = require('../models/Employee');
 const Chat = require('../models/Chat');
+const mongoose = require('mongoose');
 
 // Create a new report
 const createReport = async (req, res) => {
@@ -228,42 +229,26 @@ const updateReportStatus = async (req, res) => {
 // Get report statistics (for admin)
 const getReportStats = async (req, res) => {
   try {
-    const organizationId = req.organizationId;
+    const { organizationId } = req;
+    
+    if (!organizationId) {
+      return res.status(400).json({ message: 'Organization ID is required' });
+    }
 
-    const stats = await Report.aggregate([
-      { $match: { organization: organizationId } },
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 }
-        }
-      }
-    ]);
+    const filter = { organization: organizationId };
 
-    const reasonStats = await Report.aggregate([
-      { $match: { organization: organizationId } },
-      {
-        $group: {
-          _id: '$reason',
-          count: { $sum: 1 }
-        }
-      }
-    ]);
-
-    const severityStats = await Report.aggregate([
-      { $match: { organization: organizationId } },
-      {
-        $group: {
-          _id: '$severity',
-          count: { $sum: 1 }
-        }
-      }
-    ]);
+    const pendingCount = await Report.countDocuments({ ...filter, status: 'pending' });
+    const underReviewCount = await Report.countDocuments({ ...filter, status: 'under_review' });
+    const resolvedCount = await Report.countDocuments({ ...filter, status: 'resolved' });
+    const dismissedCount = await Report.countDocuments({ ...filter, status: 'dismissed' });
 
     res.status(200).json({
-      statusStats: stats,
-      reasonStats,
-      severityStats
+      statusStats: [
+        { _id: 'pending', count: pendingCount },
+        { _id: 'under_review', count: underReviewCount },
+        { _id: 'resolved', count: resolvedCount },
+        { _id: 'dismissed', count: dismissedCount }
+      ]
     });
   } catch (error) {
     console.error('Error in getReportStats:', error);

@@ -40,7 +40,8 @@ app.use(
   })
 );
 
-app.use(express.json()); // for JSON body parsing
+app.use(express.json({ limit: '50mb' })); // for JSON body parsing (increased for base64 image proofs)
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Connect Database
 connectDB();
@@ -59,6 +60,7 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
 app.use("/api/meetings", meetingRoutes);
+app.use("/api/groups", require("./routes/groupRoutes"));
 
 // Default Route
 app.get("/", (req, res) => {

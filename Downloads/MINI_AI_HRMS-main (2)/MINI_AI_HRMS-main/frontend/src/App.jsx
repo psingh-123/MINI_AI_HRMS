@@ -24,6 +24,8 @@ import Leaderboard from "./pages/Leaderboard";
 import Meetings from "./pages/Meetings";
 import MeetingRoom from "./pages/MeetingRoom";
 import QRAttendance from "./pages/QRAttendance";
+import TeamProgress from "./pages/TeamProgress";
+import EmployeeGroups from "./pages/EmployeeGroups";
 
 function App() {
   const userRole = localStorage.getItem("userRole")?.toLowerCase() || '';
@@ -76,6 +78,7 @@ function App() {
           <Route path="add-employee" element={<AddEmployee />} />
           <Route path="tasks" element={<Tasks />} />
           <Route path="assign-task" element={<AssignTask />} />
+          <Route path="team-progress" element={<TeamProgress />} />
           <Route path="chat" element={<Chat />} />
           <Route path="reports" element={<Reports />} />
           <Route path="attendance" element={<Attendance />} />
@@ -96,6 +99,7 @@ function App() {
           <Route index element={<Navigate to="/employee/dashboard" replace />} />
           <Route path="dashboard" element={<EmployeeDashboard />} />
           <Route path="profile" element={<EmployeeProfile />} />
+          <Route path="groups" element={<EmployeeGroups />} />
           <Route path="chat" element={<Chat />} />
           <Route path="report-abuse" element={<Reports />} />
           <Route path="qr-attendance" element={<QRAttendance />} />
