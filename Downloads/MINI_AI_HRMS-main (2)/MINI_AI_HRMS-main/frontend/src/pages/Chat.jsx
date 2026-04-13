@@ -224,14 +224,14 @@ const Chat = () => {
   const getChatImage = (chat) => {
     if (!chat) return null;
     if (chat.isGroupChat) {
-      return 'https://via.placeholder.com/40/4F46E5/FFFFFF?text=G';
+      return GROUP_AVATAR_URL;
     }
     if (chat.isAdminChat) {
       const userRole = localStorage.getItem('userRole')?.toUpperCase();
       if (userRole === 'ADMIN' || userRole === 'HR') {
         return resolveProfileImageUrl(chat.participants?.[0]?.profileImage);
       }
-      return 'https://via.placeholder.com/40/EF4444/FFFFFF?text=HR';
+      return HR_AVATAR_URL;
     }
     const currentUserId = localStorage.getItem('userId');
     const otherParticipant = chat.participants?.find(p => p._id !== currentUserId);
