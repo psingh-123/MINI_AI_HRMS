@@ -238,6 +238,15 @@ const Chat = () => {
     return otherParticipant?.profileImage || 'https://via.placeholder.com/40';
   };
 
+  const resolveProfileImageUrl = (profileImage) => {
+    if (!profileImage) return null;
+    const value = String(profileImage).trim();
+    if (!value) return null;
+    if (/^(https?:|data:|blob:)/i.test(value)) return value;
+    if (value.startsWith('/')) return `${SERVER_ORIGIN}${value}`;
+    return `${SERVER_ORIGIN}/${value}`;
+  };
+
   return (
     <div className="flex h-screen bg-slate-100">
       {/* Chat List Sidebar */}
