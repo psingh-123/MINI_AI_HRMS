@@ -75,16 +75,16 @@ const Leaderboard = () => {
   const podiumOrder = top3.length === 3 ? [top3[1], top3[0], top3[2]] : top3; // Order 2, 1, 3 for visual podium
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-gray-50 px-4 py-6 sm:px-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         
         {/* Header Filters */}
-        <div className="flex justify-between items-end bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-end gap-4 bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
           <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Performance Leaderboard</h1>
-            <p className="text-slate-500 mt-1">Metrics scaled across Attendance (40%), Tasks (30%), Leaves (15%), HR Rating (15%).</p>
+            <h1 className="text-2xl font-semibold text-gray-900">Performance Leaderboard</h1>
+            <p className="text-gray-500 mt-1">Metrics scaled across Attendance (40%), Tasks (30%), Leaves (15%), HR Rating (15%).</p>
           </div>
-          <div className="flex space-x-3 items-center">
+          <div className="flex flex-wrap gap-3 items-end">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Month</label>
               <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm font-semibold">
@@ -98,7 +98,7 @@ const Leaderboard = () => {
               <input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-24 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm font-semibold" />
             </div>
             {isAdmin && (
-               <button onClick={calculateLeaderboard} className="ml-4 mt-5 px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-bold shadow-sm transition">
+               <button onClick={calculateLeaderboard} className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 font-semibold shadow-sm transition-all duration-200">
                 ⚡ Recalculate Engine
               </button>
             )}
