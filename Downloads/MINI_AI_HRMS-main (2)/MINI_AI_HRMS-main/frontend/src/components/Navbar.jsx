@@ -160,6 +160,8 @@ const styles = `
   .nb-avatar-wrap {
     position: relative;
     flex-shrink: 0;
+    width: 34px;
+    height: 34px;
   }
 
   .nb-avatar-img {
@@ -167,7 +169,10 @@ const styles = `
     height: 34px;
     border-radius: 10px;
     object-fit: cover;
+    object-position: center;
     border: 1.5px solid #e2e8f0;
+    background: #f8fafc;
+    display: block;
   }
 
   .nb-avatar-initials {
@@ -184,6 +189,7 @@ const styles = `
     color: white;
     letter-spacing: 0.03em;
     border: 1.5px solid #e2e8f0;
+    text-transform: uppercase;
   }
 
   .nb-status-dot {
