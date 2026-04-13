@@ -249,11 +249,11 @@ const Chat = () => {
 
   const resolveProfileImageUrl = (profileImage) => {
     if (!profileImage) return null;
-    const value = String(profileImage).trim();
+    const value = String(profileImage).trim().replace(/\\/g, '/');
     if (!value) return null;
     if (/^(https?:|data:|blob:)/i.test(value)) return value;
-    if (value.startsWith('/')) return `${baseURL}${value}`;
-    return `${baseURL}/${value}`;
+    const path = value.startsWith('/') ? value : `/${value}`;
+    return `${baseURL}${path}`;
   };
 
   const svgToDataUrl = (svg) => {
