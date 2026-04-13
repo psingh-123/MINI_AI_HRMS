@@ -415,10 +415,12 @@ const Chat = () => {
                     className={`flex items-end gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}
                   >
                     {!isMine && (
-                      <img
+                      <Avatar
                         src={getChatImage(selectedChat)}
+                        name={getChatName(selectedChat)}
                         alt="sender"
                         className="w-7 h-7 rounded-full object-cover flex-shrink-0 mb-1 shadow-sm"
+                        fallbackClassName="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-[10px] font-semibold flex-shrink-0 mb-1 shadow-sm select-none"
                       />
                     )}
                     <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} max-w-xs lg:max-w-md`}>
