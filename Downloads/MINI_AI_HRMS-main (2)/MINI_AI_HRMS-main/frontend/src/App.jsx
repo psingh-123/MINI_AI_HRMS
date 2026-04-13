@@ -26,6 +26,10 @@ import MeetingRoom from "./pages/MeetingRoom";
 import QRAttendance from "./pages/QRAttendance";
 import TeamProgress from "./pages/TeamProgress";
 import EmployeeGroups from "./pages/EmployeeGroups";
+import AdminLeaves from "./pages/AdminLeaves";
+import EmployeeLeaves from "./pages/EmployeeLeaves";
+import AdminPayroll from "./pages/AdminPayroll";
+import EmployeePayroll from "./pages/EmployeePayroll";
 
 function App() {
   const userRole = localStorage.getItem("userRole")?.toLowerCase() || '';
@@ -85,6 +89,8 @@ function App() {
           <Route path="qr-attendance" element={<QRAttendance />} />
           <Route path="leaderboard" element={<Leaderboard />} />
           <Route path="meetings" element={<Meetings />} />
+          <Route path="leaves" element={<AdminLeaves />} />
+          <Route path="payroll" element={<AdminPayroll />} />
         </Route>
 
         {/* Employee Routes */}
@@ -104,6 +110,8 @@ function App() {
           <Route path="report-abuse" element={<Reports />} />
           <Route path="qr-attendance" element={<QRAttendance />} />
           <Route path="meetings" element={<Meetings />} />
+          <Route path="leaves" element={<EmployeeLeaves />} />
+          <Route path="payroll" element={<EmployeePayroll />} />
         </Route>
 
         {/* Catch-all */}

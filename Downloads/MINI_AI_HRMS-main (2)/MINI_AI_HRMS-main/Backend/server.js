@@ -61,6 +61,8 @@ app.use("/api/attendance", attendanceRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
 app.use("/api/meetings", meetingRoutes);
 app.use("/api/groups", require("./routes/groupRoutes"));
+app.use("/api/leaves", require("./routes/leaveRoutes"));
+app.use("/api/payroll", require("./routes/payrollRoutes"));
 
 // Default Route
 app.get("/", (req, res) => {

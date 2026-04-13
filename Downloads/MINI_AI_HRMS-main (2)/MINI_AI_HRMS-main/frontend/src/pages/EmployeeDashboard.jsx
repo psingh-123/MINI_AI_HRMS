@@ -10,6 +10,7 @@ function EmployeeDashboard() {
   const [updatingTaskId, setUpdatingTaskId] = useState(null);
   const [greeting, setGreeting] = useState("");
   const [wallet, setWallet] = useState(null);
+  const [leaveSummary, setLeaveSummary] = useState(null);
 
   const connectWallet = async () => {
     if (!window.ethereum) {
@@ -47,11 +48,20 @@ function EmployeeDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      await Promise.all([fetchTasks(), fetchProductivity()]);
+      await Promise.all([fetchTasks(), fetchProductivity(), fetchLeaves()]);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchLeaves = async () => {
+    try {
+      const res = await API.get("/leaves/summary", config);
+      setLeaveSummary(res.data.summary);
+    } catch (error) {
+      console.log("Could not load leave summary");
     }
   };
 
@@ -270,6 +280,32 @@ function EmployeeDashboard() {
               </div>
             </div>
           </div>
+
+          {/* Leaves Stats */}
+          {leaveSummary && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                    Leaves 
+                  </p>
+                  <p className="text-3xl font-bold text-rose-600 mt-2">
+                    {leaveSummary.totalTaken}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Taken <span className="text-emerald-500 font-medium">({leaveSummary.pendingCount} Pending)</span>
+                  </p>
+                </div>
+                <div className="bg-rose-100 p-3 rounded-xl cursor-pointer hover:bg-rose-200 transition">
+                  <Link to="/employee/leaves">
+                    <svg className="w-6 h-6 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Quick Actions Section */}
