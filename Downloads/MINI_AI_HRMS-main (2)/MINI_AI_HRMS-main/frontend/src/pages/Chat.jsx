@@ -247,6 +247,22 @@ const Chat = () => {
     return `${SERVER_ORIGIN}/${value}`;
   };
 
+  const svgToDataUrl = (svg) => {
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+  };
+
+  const makeTextAvatarUrl = ({ text, bg, fg }) => {
+    return svgToDataUrl(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+        <rect width="40" height="40" rx="20" fill="${bg}"/>
+        <text x="20" y="22" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial" font-size="${text.length > 1 ? 14 : 18}" font-weight="700" fill="${fg}">${text}</text>
+      </svg>`
+    );
+  };
+
+  const GROUP_AVATAR_URL = makeTextAvatarUrl({ text: 'G', bg: '#4F46E5', fg: '#FFFFFF' });
+  const HR_AVATAR_URL = makeTextAvatarUrl({ text: 'HR', bg: '#EF4444', fg: '#FFFFFF' });
+
   const getInitials = (name) => {
     const safe = String(name || '').trim();
     if (!safe) return '?';
