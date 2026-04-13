@@ -381,7 +381,7 @@ const Chat = () => {
                   : 'hover:bg-slate-50 border-l-2 border-transparent'
               }`}
             >
-              <div className="relative flex-shrink-0">
+              <div className="relative flex-shrink-0 self-start">
                 <Avatar
                   src={getChatImage(chat)}
                   name={getChatName(chat)}
