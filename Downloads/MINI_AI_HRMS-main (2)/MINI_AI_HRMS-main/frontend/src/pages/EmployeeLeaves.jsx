@@ -111,8 +111,8 @@ export default function EmployeeLeaves() {
               <p className="text-gray-500">No past leave applications.</p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-gray-600">
-                  <thead className="bg-gray-50 border-b">
+                <table className="w-full text-left text-sm text-gray-600 divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
                     <tr>
                       <th className="py-3 px-4 font-semibold text-gray-700">Type</th>
                       <th className="py-3 px-4 font-semibold text-gray-700">Duration</th>
@@ -121,9 +121,9 @@ export default function EmployeeLeaves() {
                       <th className="py-3 px-4 font-semibold text-gray-700">HR Remarks</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-100">
                     {data.history.map(req => (
-                      <tr key={req._id} className="border-b last:border-b-0 hover:bg-gray-50">
+                      <tr key={req._id} className="hover:bg-gray-50 transition-all duration-200">
                         <td className="py-3 px-4 font-medium text-gray-900">{req.leaveType}</td>
                         <td className="py-3 px-4">{new Date(req.fromDate).toLocaleDateString()} to {new Date(req.toDate).toLocaleDateString()}</td>
                         <td className="py-3 px-4">{req.totalDays}</td>
@@ -186,8 +186,8 @@ export default function EmployeeLeaves() {
               </div>
               
               <div className="pt-4 flex justify-end gap-3 border-t border-gray-100">
-                <button type="button" onClick={() => setShowApply(false)} className="px-4 py-2 font-medium text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
-                <button type="submit" className="px-5 py-2 font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Submit Request</button>
+                <button type="button" onClick={() => setShowApply(false)} className="px-4 py-2 font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-200">Cancel</button>
+                <button type="submit" className="px-4 py-2 font-medium bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-all duration-200">Submit Request</button>
               </div>
             </form>
           </div>
