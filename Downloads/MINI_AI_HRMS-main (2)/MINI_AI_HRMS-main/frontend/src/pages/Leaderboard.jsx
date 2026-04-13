@@ -196,9 +196,9 @@ const Leaderboard = () => {
       {/* Admin HR Rating Modal */}
       {showRatingModal && (
          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-             <h3 className="text-lg font-black text-slate-900 mb-2">Adjust HR Rating</h3>
-             <p className="text-xs text-slate-500 mb-6">Ratings account for 15% of the overall final score trajectory.</p>
+           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+             <h3 className="text-lg font-semibold text-gray-900 mb-2">Adjust HR Rating</h3>
+             <p className="text-xs text-gray-500 mb-6">Ratings account for 15% of the overall final score trajectory.</p>
              <div className="space-y-4">
                <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">Star Rating (1-5)</label>
@@ -208,8 +208,8 @@ const Leaderboard = () => {
                   </div>
                </div>
                <div className="flex space-x-3 pt-4 border-t border-slate-100">
-                 <button onClick={() => setShowRatingModal(false)} className="flex-1 py-2 bg-slate-100 font-bold text-slate-600 rounded-lg hover:bg-slate-200 transition">Cancel</button>
-                 <button onClick={saveRating} className="flex-1 py-2 bg-indigo-600 font-bold text-white rounded-lg hover:bg-indigo-700 transition shadow-sm">Save Map</button>
+                 <button onClick={() => setShowRatingModal(false)} className="flex-1 px-4 py-2 bg-gray-100 font-semibold text-gray-700 rounded-lg hover:bg-gray-200 transition-all duration-200">Cancel</button>
+                 <button onClick={saveRating} className="flex-1 px-4 py-2 bg-indigo-500 font-semibold text-white rounded-lg hover:bg-indigo-600 transition-all duration-200 shadow-sm">Save Map</button>
                </div>
              </div>
            </div>
