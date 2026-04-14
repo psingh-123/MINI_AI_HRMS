@@ -347,12 +347,13 @@ const Chat = () => {
     const currentUserId = localStorage.getItem('userId');
     const userRole = localStorage.getItem('userRole')?.toUpperCase();
 
-    if (senderId === currentUserId) return true;
+    if (senderId && senderId === currentUserId) return true;
 
     // For admins in an admin chat, treat any message NOT from the employee as "mine" (sent by HR/Admin)
     if (selectedChat?.isAdminChat && (userRole === 'ADMIN' || userRole === 'HR')) {
        const employeeId = selectedChat.participants?.[0]?._id;
-       if (senderId && employeeId && senderId !== employeeId) {
+       // We assume missing senderId belongs to Admin due to population restrictions with Organization schemas
+       if (!senderId || senderId !== employeeId) {
           return true;
        }
     }
