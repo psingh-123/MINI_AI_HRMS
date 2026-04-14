@@ -82,7 +82,8 @@ const Chat = () => {
   const fetchChats = async () => {
     try {
       const response = await API.get('/chat/');
-      setChats(response.data);
+      const filteredChats = response.data.filter(chat => !chat.linkedReport);
+      setChats(filteredChats);
     } catch (error) {
       console.error('Error fetching chats:', error);
     }

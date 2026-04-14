@@ -15,6 +15,7 @@ function AddEmployee() {
     password: "",
     skills: "",
     walletAddress: "",
+    customDepartment: "",
   });
 
   const handleChange = (e) => {
@@ -46,6 +47,8 @@ function AddEmployee() {
 
     if (!formData.department.trim()) {
       newErrors.department = "Department is required";
+    } else if (formData.department === "Others" && !formData.customDepartment.trim()) {
+      newErrors.customDepartment = "Please specify the department name";
     }
 
     if (!formData.role.trim()) {
@@ -74,9 +77,12 @@ function AddEmployee() {
       setLoading(true);
       const submissionData = {
         ...formData,
+        department: formData.department === "Others" ? formData.customDepartment : formData.department,
         skills: formData.skills.split(",").map(skill => skill.trim()),
       };
       
+      // Remove customDepartment before sending if not needed
+      delete submissionData.customDepartment;
       await API.post("/employees", submissionData);
       navigate("/admin/employees");
     } catch (err) {
@@ -275,6 +281,7 @@ function AddEmployee() {
                         <option value="HR">Human Resources</option>
                         <option value="Finance">Finance</option>
                         <option value="Operations">Operations</option>
+                        <option value="Others">Others (Enter manually)</option>
                       </select>
                       <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                         <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -284,6 +291,38 @@ function AddEmployee() {
                     </div>
                     {errors.department && (
                       <p className="text-sm text-rose-500 mt-1.5">{errors.department}</p>
+                    )}
+
+                    {/* Custom Department Input */}
+                    {formData.department === "Others" && (
+                      <div className="mt-4 space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <label className="block text-sm font-medium text-slate-700">
+                          Custom Department Name <span className="text-rose-400">*</span>
+                        </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </div>
+                          <input
+                            type="text"
+                            name="customDepartment"
+                            value={formData.customDepartment}
+                            onChange={handleChange}
+                            placeholder="Enter department name"
+                            className={`w-full pl-10 pr-4 py-3 bg-slate-50 border rounded-xl 
+                                     focus:outline-none focus:ring-2 focus:ring-indigo-500/20 
+                                     focus:border-indigo-500 transition-all text-slate-700 
+                                     placeholder:text-slate-400
+                                     ${errors.customDepartment ? 'border-rose-300 bg-rose-50/50' : 'border-slate-200'}`}
+                          />
+                        </div>
+                        {errors.customDepartment && (
+                          <p className="text-sm text-rose-500 mt-1.5">{errors.customDepartment}</p>
+                        )}
+                      </div>
                     )}
                   </div>
 
