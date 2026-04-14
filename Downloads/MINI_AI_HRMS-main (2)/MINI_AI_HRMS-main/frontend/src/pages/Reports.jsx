@@ -396,13 +396,14 @@ const Reports = () => {
                   </label>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,.pdf"
                     onChange={(e) => {
                       const file = e.target.files[0];
                       if (file) {
                         const reader = new FileReader();
                         reader.onloadend = () => {
-                          setFormData({ ...formData, evidence: [{ type: 'image', url: reader.result }] });
+                          const type = file.type.startsWith('image/') ? 'image' : 'pdf';
+                          setFormData({ ...formData, evidence: [{ type, url: reader.result, name: file.name }] });
                         };
                         reader.readAsDataURL(file);
                       }
@@ -414,7 +415,7 @@ const Reports = () => {
                       <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      Image attached successfully
+                      {formData.evidence[0].type === 'pdf' ? 'PDF' : 'Image'} attached successfully: {formData.evidence[0].name}
                     </p>
                   )}
                 </div>
@@ -506,16 +507,39 @@ const Reports = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Attached Proof</label>
                     <div className="border rounded-lg overflow-hidden bg-gray-50 p-2">
                       {selectedReport.evidence.map((item, idx) => (
-                        <div key={idx}>
-                          {item.url.startsWith('data:image') ? (
-                            <img 
-                              src={item.url} 
-                              alt="Proof" 
-                              className="max-w-full h-auto rounded cursor-pointer hover:opacity-90"
-                              onClick={() => window.open(item.url, '_blank')}
-                            />
+                        <div key={idx} className="mb-2 last:mb-0">
+                          {item.url.startsWith('data:image') || item.type === 'image' ? (
+                            <div className="space-y-2">
+                              <p className="text-xs text-gray-500 font-medium">Image Proof:</p>
+                              <img 
+                                src={item.url} 
+                                alt="Proof" 
+                                className="max-w-full h-auto rounded-lg border border-gray-200 cursor-pointer hover:opacity-95 transition-opacity"
+                                onClick={() => {
+                                  const win = window.open();
+                                  win.document.write(`<img src="${item.url}" style="max-width: 100%; height: auto;">`);
+                                }}
+                              />
+                            </div>
                           ) : (
-                            <a href={item.url} target="_blank" rel="noreferrer" className="text-blue-600 underline text-sm">View Evidence {idx + 1}</a>
+                            <div className="flex items-center p-3 bg-white border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
+                              <svg className="w-8 h-8 text-rose-500 mr-3" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+                              </svg>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">Document Proof (PDF)</p>
+                                <p className="text-xs text-gray-500">Click to view in browser</p>
+                              </div>
+                              <button 
+                                onClick={() => {
+                                  const win = window.open();
+                                  win.document.write(`<iframe src="${item.url}" style="width: 100%; height: 100vh; border: none;"></iframe>`);
+                                }}
+                                className="ml-3 px-3 py-1.5 bg-blue-50 text-blue-600 text-xs font-semibold rounded-lg hover:bg-blue-100 transition-colors"
+                              >
+                                View PDF
+                              </button>
+                            </div>
                           )}
                         </div>
                       ))}

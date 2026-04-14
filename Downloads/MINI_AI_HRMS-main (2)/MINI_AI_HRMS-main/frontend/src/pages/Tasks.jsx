@@ -240,7 +240,8 @@ function Tasks() {
   };
 
   const statusColors = {
-    "Pending": "bg-amber-50 text-amber-700 border-amber-200",
+    "Assigned": "bg-amber-50 text-amber-700 border-amber-200",
+    "Pending": "bg-amber-50 text-amber-700 border-amber-200", // Fallback for old data
     "In Progress": "bg-blue-50 text-blue-700 border-blue-200",
     "Completed": "bg-emerald-50 text-emerald-700 border-emerald-200",
     "Overdue": "bg-rose-50 text-rose-700 border-rose-200"
@@ -249,9 +250,9 @@ function Tasks() {
   // Calculate statistics
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter(t => t.status === 'Completed').length;
-  const pendingTasks = tasks.filter(t => t.status === 'In Pending').length;
+  const pendingTasks = tasks.filter(t => t.status === 'Assigned' || t.status === 'Pending' || t.status === 'In Pending').length;
   const overdueTasks = tasks.filter(t => t.status === 'Overdue').length;
-  const inProgressTasks = tasks.filter(t => t.status === 'In Progress').length;
+  const inProgressTasks = tasks.filter(t => t.status === 'In Progress' || t.status === 'in_progress').length;
 
   if (loading) {
     return (
@@ -814,7 +815,7 @@ function Tasks() {
                 aria-label="Filter by status"
               >
                 <option value="All">All Status</option>
-                <option value="Pending">Pending</option>
+                <option value="Assigned">Pending</option>
                 <option value="In Progress">In Progress</option>
                 <option value="Completed">Completed</option>
                 <option value="Overdue">Overdue</option>

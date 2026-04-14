@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 // Create a new report
 const createReport = async (req, res) => {
   try {
-    const { reportedUserId, reason, description, severity, anonymous } = req.body;
+    const { reportedUserId, reason, description, severity, anonymous, evidence } = req.body;
     const reportedBy = req.user.id;
     const organizationId = req.organizationId;
 
@@ -38,7 +38,8 @@ const createReport = async (req, res) => {
       reason,
       description,
       severity: severity || 'medium',
-      anonymous: anonymous || false
+      anonymous: anonymous || false,
+      evidence: evidence || []
     });
 
     await report.save();
