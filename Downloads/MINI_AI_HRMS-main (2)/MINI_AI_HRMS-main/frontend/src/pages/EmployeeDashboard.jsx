@@ -311,7 +311,7 @@ function EmployeeDashboard() {
                 <div className="bg-indigo-100 p-3 rounded-xl cursor-pointer hover:bg-indigo-200 transition">
                   <Link to="/employee/leaderboard">
                     <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                     </svg>
                   </Link>
                 </div>
@@ -325,7 +325,7 @@ function EmployeeDashboard() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
-                    Leaves 
+                    Leaves
                   </p>
                   <p className="text-3xl font-bold text-rose-600 mt-2">
                     {leaveSummary.totalTaken}
@@ -435,8 +435,8 @@ function EmployeeDashboard() {
                         <div className="flex items-start">
                           <div className="flex-shrink-0 mt-0.5">
                             <div className={`w-2 h-2 rounded-full mt-1.5 ${task.status === "Completed" ? "bg-emerald-500" :
-                                task.status === "In Progress" ? "bg-blue-500" :
-                                  "bg-amber-500"
+                              task.status === "In Progress" ? "bg-blue-500" :
+                                "bg-amber-500"
                               }`}></div>
                           </div>
                           <div className="ml-3">

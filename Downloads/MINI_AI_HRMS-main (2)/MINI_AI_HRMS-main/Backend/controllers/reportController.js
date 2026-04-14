@@ -31,6 +31,12 @@ const createReport = async (req, res) => {
       return res.status(400).json({ message: 'You cannot report yourself' });
     }
 
+    // Map evidence type for model compliance
+    const mappedEvidence = (evidence || []).map(item => ({
+      evidenceType: item.type || 'image',
+      url: item.url
+    }));
+
     const report = new Report({
       organization: organizationId,
       reportedBy,
@@ -39,10 +45,12 @@ const createReport = async (req, res) => {
       description,
       severity: severity || 'medium',
       anonymous: anonymous || false,
-      evidence: evidence || []
+      evidence: mappedEvidence
     });
 
+    console.log('Attempting to save report with evidence count:', mappedEvidence.length);
     await report.save();
+    console.log('Report saved successfully:', report._id);
 
     const populatedReport = await Report.findById(report._id)
       .populate('reportedBy', 'name email')
@@ -61,8 +69,12 @@ const createReport = async (req, res) => {
 
     res.status(201).json(populatedReport);
   } catch (error) {
-    console.error('Error in createReport:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('CRITICAL ERROR in createReport:', error);
+    res.status(500).json({ 
+      message: 'Server error while creating report', 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
 

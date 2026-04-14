@@ -21,7 +21,7 @@ const Reports = () => {
         try {
           const payload = JSON.parse(atob(token.split('.')[1]));
           uid = payload.id || payload.userId;
-        } catch (e) {}
+        } catch (e) { }
       }
     }
     return uid || '';
@@ -121,7 +121,8 @@ const Reports = () => {
         reason: '',
         description: '',
         severity: 'medium',
-        anonymous: false
+        anonymous: false,
+        evidence: []
       });
       fetchMyReports();
     } catch (error) {
@@ -228,8 +229,8 @@ const Reports = () => {
                 <button
                   onClick={() => setActiveTab('all')}
                   className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'all'
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
                     }`}
                 >
                   All Reports
@@ -238,8 +239,8 @@ const Reports = () => {
               <button
                 onClick={() => setActiveTab('my-reports')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'my-reports'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}
               >
                 My Reports
@@ -248,8 +249,8 @@ const Reports = () => {
                 <button
                   onClick={() => setActiveTab('against-me')}
                   className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'against-me'
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
                     }`}
                 >
                   Reports Against Me
@@ -297,8 +298,8 @@ const Reports = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {(report.reportedBy?._id || report.reportedBy)?.toString() === currentUserId?.toString() ? 'You' : 
-                       (report.anonymous && !isAdmin ? 'Anonymous' : (report.reportedBy?.name || 'N/A'))}
+                      {(report.reportedBy?._id || report.reportedBy)?.toString() === currentUserId?.toString() ? 'You' :
+                        (report.anonymous && !isAdmin ? 'Anonymous' : (report.reportedBy?.name || 'N/A'))}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
@@ -508,12 +509,12 @@ const Reports = () => {
                     <div className="border rounded-lg overflow-hidden bg-gray-50 p-2">
                       {selectedReport.evidence.map((item, idx) => (
                         <div key={idx} className="mb-2 last:mb-0">
-                          {item.url.startsWith('data:image') || item.type === 'image' ? (
+                          {item.url.startsWith('data:image') || item.evidenceType === 'image' || item.type === 'image' ? (
                             <div className="space-y-2">
                               <p className="text-xs text-gray-500 font-medium">Image Proof:</p>
-                              <img 
-                                src={item.url} 
-                                alt="Proof" 
+                              <img
+                                src={item.url}
+                                alt="Proof"
                                 className="max-w-full h-auto rounded-lg border border-gray-200 cursor-pointer hover:opacity-95 transition-opacity"
                                 onClick={() => {
                                   const win = window.open();
@@ -524,13 +525,13 @@ const Reports = () => {
                           ) : (
                             <div className="flex items-center p-3 bg-white border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
                               <svg className="w-8 h-8 text-rose-500 mr-3" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" />
                               </svg>
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-gray-900 truncate">Document Proof (PDF)</p>
                                 <p className="text-xs text-gray-500">Click to view in browser</p>
                               </div>
-                              <button 
+                              <button
                                 onClick={() => {
                                   const win = window.open();
                                   win.document.write(`<iframe src="${item.url}" style="width: 100%; height: 100vh; border: none;"></iframe>`);
@@ -552,7 +553,7 @@ const Reports = () => {
                   (() => {
                     const reporterId = selectedReport.reportedBy?._id || selectedReport.reportedBy;
                     const isOwner = reporterId?.toString() === currentUserId?.toString();
-                    
+
                     console.log('Ownership Check:', {
                       reporterId,
                       currentUserId,
@@ -627,7 +628,7 @@ const Reports = () => {
                           >
                             Update Report
                           </button>
-                          <br/>
+                          <br />
                           <button
                             onClick={() => window.location.href = '/chat'}
                             className="w-full px-4 py-2 mt-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200"

@@ -50,7 +50,7 @@ function HRQRPanel() {
     if (!session || !canvasRef.current) return;
     QRCodeLib.toCanvas(canvasRef.current, JSON.stringify({
       sessionId: session.sessionId, timestamp: session.timestamp, expiresAt: session.expiresAt
-    }), { width: 280, margin: 2, color: { dark: '#1e293b', light: '#ffffff' } }).catch(() => {});
+    }), { width: 280, margin: 2, color: { dark: '#1e293b', light: '#ffffff' } }).catch(() => { });
   }, [session]);
 
   // Removed auto-refresh every 60 s as requested
@@ -64,7 +64,7 @@ function HRQRPanel() {
         clearInterval(tickRef.current);
         // Automatically stop the session when time runs out
         // This ensures the QR disappears and no new one is auto-generated
-        stopQR(); 
+        stopQR();
         return 0;
       }
       return c - 1;
@@ -80,7 +80,7 @@ function HRQRPanel() {
       setDateLoading(true);
       const res = await API.get(`/attendance/date/${date}`);
       setDateRecords(prev => ({ ...prev, [date]: res.data }));
-    } catch (e) {/* silent */} finally { setDateLoading(false); }
+    } catch (e) {/* silent */ } finally { setDateLoading(false); }
   };
 
   const pct = (countdown / 60) * 100;
@@ -236,7 +236,7 @@ function EmployeeQRPanel() {
   const [countdown, setCountdown] = useState(0);
   const [marking, setMarking] = useState(false);
   const [locating, setLocating] = useState(false);
-  const [scanning, setScanning] = useState(false);   
+  const [scanning, setScanning] = useState(false);
   const [scanMsg, setScanMsg] = useState('');
   const [isMobile, setIsMobile] = useState(true);
   const [todaySummary, setTodaySummary] = useState(null);
@@ -256,11 +256,11 @@ function EmployeeQRPanel() {
   }, []);
 
   const fetchToday = async () => {
-    try { const r = await API.get('/attendance/today'); setTodayStatus(r.data); } catch {}
+    try { const r = await API.get('/attendance/today'); setTodayStatus(r.data); } catch { }
   };
 
   const fetchHistory = async () => {
-    try { const r = await API.get('/attendance/my-attendance?limit=20'); setHistory(r.data.attendance || []); } catch {}
+    try { const r = await API.get('/attendance/my-attendance?limit=20'); setHistory(r.data.attendance || []); } catch { }
   };
 
   const fetchTodayList = async () => {
@@ -268,7 +268,7 @@ function EmployeeQRPanel() {
       const dateStr = format(new Date(), 'yyyy-MM-dd');
       const r = await API.get(`/attendance/date/${dateStr}`);
       setTodaySummary(r.data);
-    } catch {}
+    } catch { }
   };
 
   const fetchQR = async () => {
@@ -291,7 +291,7 @@ function EmployeeQRPanel() {
     if (!qrSession || !canvasRef.current) return;
     QRCodeLib.toCanvas(canvasRef.current, JSON.stringify({
       sessionId: qrSession.sessionId, timestamp: qrSession.timestamp, expiresAt: qrSession.expiresAt
-    }), { width: 220, margin: 1, color: { dark: '#1e293b', light: '#ffffff' } }).catch(() => {});
+    }), { width: 220, margin: 1, color: { dark: '#1e293b', light: '#ffffff' } }).catch(() => { });
   }, [qrSession]);
 
   const showToast = (type, text) => { setToast({ type, text }); setTimeout(() => setToast(null), 7000); };
@@ -347,25 +347,25 @@ function EmployeeQRPanel() {
           let p; try { p = JSON.parse(text); } catch { showToast('error', 'Invalid QR Code.'); return; }
           const age = (Date.now() - new Date(p.timestamp).getTime()) / 1000;
           if (age > 65) { showToast('error', '⏰ Scanned QR has expired.'); return; }
-          
+
           await stopScan(); // Stop camera once detected
-          
+
           setLocating(true);
           navigator.geolocation.getCurrentPosition(async pos => {
             setLocating(false);
             const { latitude, longitude } = pos.coords;
             const dist = haversine(latitude, longitude, OFFICE_LAT, OFFICE_LON);
-            if (dist > MAX_DIST_M) { 
-              showToast('error', `📍 Too far! You are ${Math.round(dist)}m away from office.`); 
-              return; 
+            if (dist > MAX_DIST_M) {
+              showToast('error', `📍 Too far! You are ${Math.round(dist)}m away from office.`);
+              return;
             }
             await submitMark(p.sessionId, latitude, longitude);
-          }, (err) => { 
-            setLocating(false); 
-            showToast('error', '📍 Location access required for attendance.'); 
+          }, (err) => {
+            setLocating(false);
+            showToast('error', '📍 Location access required for attendance.');
           }, { enableHighAccuracy: true, timeout: 10000 });
         },
-        () => {} // silent scan
+        () => { } // silent scan
       );
       setScanMsg('Align QR code within the frame');
     } catch (err) { setScanMsg('Camera error: ' + err.message); }
@@ -373,7 +373,7 @@ function EmployeeQRPanel() {
 
 
   const stopScan = async () => {
-    try { if (html5Ref.current) { await html5Ref.current.stop(); html5Ref.current = null; } } catch {}
+    try { if (html5Ref.current) { await html5Ref.current.stop(); html5Ref.current = null; } } catch { }
     setScanning(false); setScanMsg('');
   };
 
@@ -474,11 +474,11 @@ function EmployeeQRPanel() {
                       : marking ? <><span className="spin" /> Recording…</>
                         : countdown <= 0 ? '⏰ Session Expired'
                           : <><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg> Mark as Present</>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg> Mark as Present</>
                     }
                   </button>
-                  
+
                   {!scanning ? (
                     <button className="recheck-btn" onClick={startScan} style={{ width: '100%', margin: 0, padding: '12px', borderRadius: '16px' }}>
                       <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ marginRight: '8px', verticalAlign: 'middle' }}>

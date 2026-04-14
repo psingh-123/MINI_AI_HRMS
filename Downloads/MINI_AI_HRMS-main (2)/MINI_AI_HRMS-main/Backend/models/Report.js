@@ -36,7 +36,7 @@ const reportSchema = new mongoose.Schema({
         default: 'pending'
     },
     evidence: [{
-        type: String,
+        evidenceType: String,
         url: String
     }],
     reviewedBy: {

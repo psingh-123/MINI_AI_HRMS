@@ -119,10 +119,10 @@ const Chat = () => {
     try {
       const userRole = localStorage.getItem('userRole')?.toUpperCase();
       const isAdmin = userRole === 'ADMIN' || userRole === 'HR';
-      
-      const response = await API.post('/chat/one-on-one', { 
+
+      const response = await API.post('/chat/one-on-one', {
         participantId,
-        isAdminChat: isAdmin 
+        isAdminChat: isAdmin
       });
       setSelectedChat(response.data);
       setShowNewChatModal(false);
@@ -384,7 +384,7 @@ const Chat = () => {
                 ${selectedChat?._id === chat._id
                   ? 'bg-blue-50 border-l-2 border-blue-600'
                   : 'hover:bg-slate-50 border-l-2 border-transparent'
-              }`}
+                }`}
             >
               <div className="relative flex-shrink-0 self-start">
                 <Avatar
@@ -603,8 +603,8 @@ const Chat = () => {
                 <label key={employee._id} className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors duration-100">
                   <input
                     type="checkbox"
-                  checked={selectedParticipants.includes(employee._id)}
-                  onChange={(e) => {
+                    checked={selectedParticipants.includes(employee._id)}
+                    onChange={(e) => {
                       if (e.target.checked) {
                         setSelectedParticipants([...selectedParticipants, employee._id]);
                       } else {

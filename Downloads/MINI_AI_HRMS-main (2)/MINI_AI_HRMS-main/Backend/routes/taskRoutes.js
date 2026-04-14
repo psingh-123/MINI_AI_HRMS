@@ -27,3 +27,5 @@ router.put("/:id/status", protect, updateTaskStatus);
 router.delete("/:id", protect, adminOnly, deleteTask);
 
 module.exports = router;
+
+module.exports = router;
