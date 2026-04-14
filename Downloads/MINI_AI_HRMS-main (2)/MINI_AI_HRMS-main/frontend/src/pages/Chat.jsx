@@ -320,12 +320,43 @@ const Chat = () => {
   };
 
   const getMessageSenderName = (message) => {
+    if (selectedChat?.isAdminChat) {
+      const role = localStorage.getItem('userRole')?.toUpperCase();
+      const senderId = message?.sender?._id || message?.sender;
+      if (role !== 'ADMIN' && role !== 'HR' && senderId !== localStorage.getItem('userId')) {
+         return 'HR / Admin Support';
+      }
+    }
     return getMessageSender(message)?.name || getChatName(selectedChat);
   };
 
   const getMessageSenderImage = (message) => {
+    if (selectedChat?.isAdminChat) {
+      const role = localStorage.getItem('userRole')?.toUpperCase();
+      const senderId = message?.sender?._id || message?.sender;
+      if (role !== 'ADMIN' && role !== 'HR' && senderId !== localStorage.getItem('userId')) {
+         return HR_AVATAR_URL;
+      }
+    }
     const sender = getMessageSender(message);
     return resolveProfileImageUrl(getProfileImageValue(sender));
+  };
+
+  const isMyMessage = (message) => {
+    const senderId = message?.sender?._id || message?.sender;
+    const currentUserId = localStorage.getItem('userId');
+    const userRole = localStorage.getItem('userRole')?.toUpperCase();
+
+    if (senderId === currentUserId) return true;
+
+    // For admins in an admin chat, treat any message NOT from the employee as "mine" (sent by HR/Admin)
+    if (selectedChat?.isAdminChat && (userRole === 'ADMIN' || userRole === 'HR')) {
+       const employeeId = selectedChat.participants?.[0]?._id;
+       if (senderId && employeeId && senderId !== employeeId) {
+          return true;
+       }
+    }
+    return false;
   };
 
   return (
@@ -450,7 +481,7 @@ const Chat = () => {
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3"
               style={{ backgroundImage: 'radial-gradient(circle, #e2e8f0 1px, transparent 1px)', backgroundSize: '24px 24px', backgroundColor: '#f8fafc' }}>
               {messages.map((message, index) => {
-                const isMine = (message.sender?._id || message.sender) === localStorage.getItem('userId');
+                const isMine = isMyMessage(message);
                 return (
                   <div
                     key={index}

@@ -329,13 +329,4 @@ module.exports = {
   updateTaskStatus,
   getProductivity,
   deleteTask,
-}; createTask,
-  getTasks,
-  getTaskById,
-  getMyTasks,
-  updateTaskStatus,
-  getProductivity,
-  deleteTask,
-  submitTask,
-  reviewTask
 };

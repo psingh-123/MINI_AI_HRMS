@@ -45,16 +45,27 @@ export default function EmployeePayroll() {
         scale: 2,
         useCORS: true,
         onclone: (clonedDoc) => {
+          // 1. Remove all existing external/Tailwind stylesheets to prevent html2canvas parsing oklch variables
+          const externalStyles = clonedDoc.querySelectorAll('link[rel="stylesheet"], style');
+          externalStyles.forEach(s => s.remove());
+
+          // 2. Inject our safe, standardized PDF-only styles
           const style = clonedDoc.createElement('style');
           style.innerHTML = pdfStyles;
           clonedDoc.head.appendChild(style);
           
-          // Aggressive oklch sanitization for Tailwind v4 compatibility
+          // 3. Rip out any inline 'oklch' and 'color-mix' usages dynamically
           const allElements = clonedDoc.getElementsByTagName('*');
           for (let i = 0; i < allElements.length; i++) {
              const el = allElements[i];
-             if (el.getAttribute('style')) {
-               el.setAttribute('style', el.getAttribute('style').replace(/oklch\([^)]+\)/g, '#6366f1'));
+             const inlineStyle = el.getAttribute('style');
+             if (inlineStyle && (inlineStyle.includes('oklch') || inlineStyle.includes('color-mix'))) {
+               el.setAttribute(
+                 'style',
+                 inlineStyle
+                   .replace(/oklch\([^)]+\)/g, '#6366f1')
+                   .replace(/color-mix\([^)]+\)/g, '#6366f1')
+               );
              }
           }
         }
